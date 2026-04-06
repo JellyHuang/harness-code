@@ -22,3 +22,4 @@ anyhow.workspace = true
 serde_json.workspace = true
 dirs.workspace = true
 futures.workspace = true
+uuid.workspace = true

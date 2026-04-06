@@ -9,6 +9,7 @@ HCode is an AI-powered coding assistant that combines the best patterns from [Cl
 - **Coordinator/Worker Architecture**: Multi-agent orchestration with XML notifications
 - **Multi-Provider Support**: Anthropic, OpenAI, OpenRouter, Azure, Bedrock
 - **Streaming Responses**: Real-time SSE streaming with thinking block support
+- **Interactive REPL Mode**: Multi-turn conversations with session persistence
 - **Tool System**: Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch
 - **Permission System**: Fine-grained access control for tools
 - **MCP Protocol**: Model Context Protocol client support
@@ -25,16 +26,56 @@ cargo build --release
 
 ## Usage
 
+### Single-Shot Mode
+
+Execute a single prompt and exit:
+
 ```bash
 # Run with a prompt
 hcode run -p "Help me implement a REST API"
 
-# Interactive mode
+# Use a specific provider and model
+hcode run --provider anthropic --model claude-sonnet-4-20250514 -p "Analyze this codebase"
+```
+
+### Interactive Mode
+
+Start an interactive REPL session for multi-turn conversations:
+
+```bash
+# Start interactive mode
 hcode run
 
-# Use a specific provider
+# With specific provider/model
 hcode run --provider anthropic --model claude-sonnet-4-20250514
+```
 
+#### Interactive Commands
+
+While in interactive mode, use these slash commands:
+
+| Command | Description |
+|---------|-------------|
+| `/help` | Display available commands |
+| `/exit` or `/quit` | Save session and exit |
+| `/clear` | Clear conversation history |
+| `/compact` | Trigger conversation compaction (coming soon) |
+
+#### Keyboard Shortcuts
+
+- `Ctrl+C` - Save session and exit gracefully
+- `Ctrl+D` - Exit without saving
+
+#### Session Persistence
+
+Sessions are automatically saved to `~/.config/hcode/sessions/<session-id>.json` when you exit. Each session includes:
+- Unique session ID (UUID)
+- Complete conversation history
+- Timestamps for all messages
+
+### Agent Commands
+
+```bash
 # List available agents
 hcode agent list
 

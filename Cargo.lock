@@ -527,6 +527,7 @@ dependencies = [
  "hcode-types",
  "serde_json",
  "tokio",
+ "uuid",
 ]
 
 [[package]]
@@ -626,9 +627,11 @@ dependencies = [
 name = "hcode-session"
 version = "0.1.0"
 dependencies = [
+ "dirs",
  "hcode-types",
  "serde",
  "serde_json",
+ "tempfile",
  "thiserror",
  "tokio",
  "uuid",

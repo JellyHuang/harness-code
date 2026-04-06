@@ -5,6 +5,7 @@ use clap::Parser;
 
 mod cli;
 mod commands;
+mod interactive;
 
 #[derive(Parser)]
 #[command(name = "hcode")]

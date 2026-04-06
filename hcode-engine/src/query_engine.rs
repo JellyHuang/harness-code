@@ -242,6 +242,23 @@ impl QueryEngine {
         }
     }
 
+    /// Add a message to the conversation history.
+    /// Used by interactive mode to accumulate messages across turns.
+    pub fn add_message(&self, message: Message) {
+        self.messages.write().push(message);
+    }
+
+    /// Clear all messages from conversation history.
+    /// Used by interactive mode's /clear command.
+    pub fn clear_messages(&self) {
+        self.messages.write().clear();
+    }
+
+    /// Set messages directly (for session restoration).
+    pub fn set_messages(&self, messages: Vec<Message>) {
+        *self.messages.write() = messages;
+    }
+
     /// Submit a message and stream results
     #[allow(unused_assignments)]
     pub fn submit_message(

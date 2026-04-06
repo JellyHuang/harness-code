@@ -10,3 +10,7 @@ serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 uuid.workspace = true
+dirs.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

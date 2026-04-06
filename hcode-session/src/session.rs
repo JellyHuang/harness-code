@@ -1,10 +1,11 @@
 //! Session types.
 
 use hcode_types::Message;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// A conversation session.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Session {
     pub id: String,
     pub messages: Vec<Message>,
