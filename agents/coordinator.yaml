@@ -1,0 +1,24 @@
+# Coordinator Agent
+# Orchestrates worker agents and manages task distribution
+agent_type: "coordinator"
+name: "Coordinator"
+description: "Orchestrates worker agents and manages task distribution"
+permission_mode: "plan"
+
+tools:
+  allowed:
+    - Agent
+    - TaskStop
+    - SendMessage
+    - SyntheticOutput
+
+model:
+  provider: "anthropic"
+  model_id: "claude-3-sonnet"
+  max_tokens: 4096
+
+execution:
+  mode: "sync"
+  timeout_seconds: 600
+
+background: false

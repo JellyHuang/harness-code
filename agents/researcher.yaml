@@ -1,0 +1,25 @@
+# Researcher Agent
+# Specialized in codebase exploration and research
+agent_type: "researcher"
+name: "Code Researcher"
+description: "Specialized in codebase exploration and research"
+permission_mode: "read_only"
+
+tools:
+  allowed:
+    - Read
+    - Grep
+    - Glob
+    - WebSearch
+    - WebFetch
+
+model:
+  provider: "anthropic"
+  model_id: "claude-3-sonnet"
+  max_tokens: 4096
+
+execution:
+  mode: "async"
+  timeout_seconds: 300
+
+background: true

@@ -1,0 +1,12 @@
+[package]
+name = "hcode-session"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+hcode-types.workspace = true
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+uuid.workspace = true

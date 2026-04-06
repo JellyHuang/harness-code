@@ -1,0 +1,26 @@
+# Implementer Agent
+# Specialized in code implementation and modification
+agent_type: "implementer"
+name: "Code Implementer"
+description: "Specialized in code implementation and modification"
+permission_mode: "accept_edits"
+
+tools:
+  allowed:
+    - Read
+    - Edit
+    - Write
+    - Bash
+    - Grep
+    - Glob
+
+model:
+  provider: "anthropic"
+  model_id: "claude-3-sonnet"
+  max_tokens: 8192
+
+execution:
+  mode: "async"
+  timeout_seconds: 600
+
+background: true

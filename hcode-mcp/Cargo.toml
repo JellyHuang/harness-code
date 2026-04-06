@@ -1,0 +1,12 @@
+[package]
+name = "hcode-mcp"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+hcode-types.workspace = true
+hcode-tools.workspace = true
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true

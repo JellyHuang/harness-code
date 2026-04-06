@@ -1,0 +1,26 @@
+[package]
+name = "hcode-engine"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+hcode-types.workspace = true
+hcode-protocol.workspace = true
+hcode-provider.workspace = true
+hcode-tools.workspace = true
+hcode-permission.workspace = true
+tokio.workspace = true
+tokio-stream.workspace = true
+tokio-util = "0.7"
+async-trait.workspace = true
+futures.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+async-stream = "0.3"
+parking_lot = "0.12"
+pin-project = "1"
+chrono = { version = "0.4", features = ["serde"] }
+uuid.workspace = true
+tracing = "0.1"
+regex = "1"

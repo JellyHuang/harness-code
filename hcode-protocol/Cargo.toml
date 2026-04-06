@@ -1,0 +1,12 @@
+[package]
+name = "hcode-protocol"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+hcode-types.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+quick-xml.workspace = true
+tokio-stream.workspace = true
+thiserror.workspace = true

@@ -1,0 +1,24 @@
+[package]
+name = "hcode"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "hcode"
+path = "src/main.rs"
+
+[dependencies]
+hcode-types.workspace = true
+hcode-protocol.workspace = true
+hcode-provider.workspace = true
+hcode-tools.workspace = true
+hcode-engine.workspace = true
+hcode-config.workspace = true
+hcode-session.workspace = true
+hcode-mcp.workspace = true
+tokio.workspace = true
+clap.workspace = true
+anyhow.workspace = true
+serde_json.workspace = true
+dirs.workspace = true
+futures.workspace = true

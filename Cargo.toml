@@ -1,0 +1,72 @@
+[workspace]
+resolver = "2"
+members = [
+    "hcode-types",
+    "hcode-protocol",
+    "hcode-provider",
+    "hcode-tools",
+    "hcode-permission",
+    "hcode-engine",
+    "hcode-config",
+    "hcode-session",
+    "hcode-mcp",
+    "hcode",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+license = "MIT"
+authors = ["HCode Team"]
+repository = "https://github.com/hcode-dev/hcode"
+description = "AI coding agent with coordinator/worker architecture"
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+tokio-stream = "0.1"
+futures = "0.3"
+async-trait = "0.1"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+
+# HTTP
+reqwest = { version = "0.12", features = ["json", "stream"] }
+eventsource-stream = "0.2"
+
+# XML
+quick-xml = "0.31"
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# Error handling
+thiserror = "1"
+anyhow = "1"
+
+# UUID
+uuid = { version = "1", features = ["v4", "serde"] }
+
+# Regex
+regex = "1"
+
+# Directories
+dirs = "5"
+
+# Testing
+tempfile = "3"
+
+# Internal crates
+hcode-types = { path = "hcode-types" }
+hcode-protocol = { path = "hcode-protocol" }
+hcode-provider = { path = "hcode-provider" }
+hcode-tools = { path = "hcode-tools" }
+hcode-permission = { path = "hcode-permission" }
+hcode-engine = { path = "hcode-engine" }
+hcode-config = { path = "hcode-config" }
+hcode-session = { path = "hcode-session" }
+hcode-mcp = { path = "hcode-mcp" }

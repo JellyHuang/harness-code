@@ -1,0 +1,8 @@
+[build]
+jobs = 4
+
+[net]
+retry = 3
+
+[term]
+verbose = false
