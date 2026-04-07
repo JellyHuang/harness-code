@@ -189,7 +189,7 @@ impl Config {
 
         // Check provider's disabled flag
         if let Some(provider) = self.provider.get(provider_id) {
-            return provider.disabled.unwrap_or(false) == false;
+            return !provider.disabled.unwrap_or(false);
         }
 
         // Default: not configured, so not enabled

@@ -22,42 +22,59 @@ pub async fn execute(
     let registry = ProviderRegistry::from_config(&ctx.config);
 
     // Determine provider and model
-    let provider_name = provider_override
-        .or_else(|| {
-            ctx.config.model.as_ref().and_then(|m| {
-                let (p, _) = hcode_config::Config::parse_model_string(m);
-                p.map(|s| s.to_string())
-            })
-        })
-        .unwrap_or_else(|| {
-            registry
-                .get_default()
-                .map(|p| p.name().to_string())
-                .unwrap_or_else(|| "anthropic".to_string())
-        });
+    let provider_name = if let Some(name) = provider_override {
+        // --provider flag explicitly given
+        name
+    } else if let Some(p) = ctx.config.model.as_ref().and_then(|m| {
+        let (p, _) = hcode_config::Config::parse_model_string(m);
+        p.map(|s| s.to_string())
+    }) {
+        // config.model is "provider/model" format, extract the provider part
+        p
+    } else if let Some(default_provider) = registry.get_default().map(|p| p.name().to_string()) {
+        // use the first registered provider
+        default_provider
+    } else {
+        // nothing configured at all
+        return Err(anyhow::anyhow!(
+            "No provider configured. Add a provider to your config file (~/.config/hcode/config.json).\n\
+             Example:\n\
+             {{\n  \"provider\": {{\n    \"anthropic\": {{ \"options\": {{ \"apiKey\": \"sk-ant-...\" }} }}\n  }}\n}}"
+        ));
+    };
 
-    let model = model_override
-        .or_else(|| {
-            ctx.config.model.as_ref().and_then(|m| {
-                let (p, model) = hcode_config::Config::parse_model_string(m);
-                if p.is_none() {
-                    Some(model.to_string())
-                } else {
-                    None
-                }
-            })
-        })
-        .or_else(|| {
-            ctx.config
-                .provider
-                .get(&provider_name)
-                .and_then(|p| p.models.as_ref().and_then(|m| m.keys().next().cloned()))
-        })
-        .unwrap_or_else(|| "claude-sonnet-4-20250514".to_string());
+    let model = if let Some(m) = model_override {
+        // --model flag explicitly given
+        m
+    } else if let Some(m) = ctx.config.model.as_ref().and_then(|m| {
+        let (p, model) = hcode_config::Config::parse_model_string(m);
+        // only use it if it's a bare model name (no provider prefix)
+        if p.is_none() { Some(model.to_string()) } else { None }
+    }) {
+        m
+    } else if let Some(m) = ctx.config
+        .provider
+        .get(&provider_name)
+        .and_then(|p| p.models.as_ref().and_then(|m| m.keys().next().cloned()))
+    {
+        // first model listed under this provider in config
+        m
+    } else {
+        return Err(anyhow::anyhow!(
+            "No model configured for provider '{}'. Add a model to your config file.\n\
+             Example:\n\
+             {{\n  \"provider\": {{\n    \"{}\": {{ \"models\": {{ \"your-model-id\": {{}} }} }}\n  }}\n}}",
+            provider_name,
+            provider_name
+        ));
+    };
 
     // Get provider
     let provider = registry.get(&provider_name).ok_or_else(|| {
-        anyhow::anyhow!("Provider '{}' not found or not configured", provider_name)
+        anyhow::anyhow!(
+            "Provider '{}' is configured but failed to initialize (check API key and baseURL).",
+            provider_name
+        )
     })?;
 
     if let Some(p) = prompt {

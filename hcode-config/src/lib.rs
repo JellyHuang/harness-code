@@ -42,16 +42,9 @@ fn get_config_dir() -> Option<PathBuf> {
 
     #[cfg(target_os = "windows")]
     {
-        // On Windows, use %LOCALAPPDATA%\hcode
-        env::var("LOCALAPPDATA")
-            .map(|p| PathBuf::from(p).join("hcode"))
-            .ok()
-            .or_else(|| {
-                // Fallback to APPDATA if LOCALAPPDATA is not set
-                env::var("APPDATA")
-                    .map(|p| PathBuf::from(p).join("hcode"))
-                    .ok()
-            })
+        // On Windows, use ~/.config/hcode (same as Unix) for consistency.
+        // This matches where OpenCode and other tools store configs.
+        dirs::home_dir().map(|h| h.join(".config").join("hcode"))
     }
 
     #[cfg(not(target_os = "windows"))]

@@ -18,7 +18,6 @@ HCode is an AI-powered coding assistant that combines the best patterns from [Cl
 
 ```bash
 # Build from source
-cd hcode-rust
 cargo build --release
 
 # The binary will be at target/release/hcode
