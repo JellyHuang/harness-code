@@ -4,7 +4,9 @@ use async_trait::async_trait;
 use hcode_permission::PermissionResult;
 use hcode_types::ToolResult;
 use serde_json::Value;
+use std::any::Any;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 /// Tool trait for implementing tools.
 #[async_trait]
@@ -43,12 +45,21 @@ pub trait Tool: Send + Sync {
     async fn call(&self, input: Value, context: ToolContext) -> Result<ToolResult, ToolError>;
 }
 
+/// Coordinator trait for tool context (type-erased coordinator access).
+pub trait CoordinatorRef: Send + Sync + std::fmt::Debug {
+    /// Get coordinator as Any for downcasting.
+    fn as_any(&self) -> &dyn Any;
+}
+
 /// Context for tool execution.
 #[derive(Debug, Clone)]
 pub struct ToolContext {
     pub working_dir: PathBuf,
     pub session_id: String,
     pub tool_use_id: String,
+    
+    /// Optional coordinator reference for multi-agent tools.
+    pub coordinator: Option<Arc<dyn CoordinatorRef>>,
 }
 
 impl ToolContext {
@@ -61,7 +72,14 @@ impl ToolContext {
             working_dir,
             session_id: session_id.into(),
             tool_use_id: tool_use_id.into(),
+            coordinator: None,
         }
+    }
+    
+    /// Set coordinator reference.
+    pub fn with_coordinator(mut self, coordinator: Arc<dyn CoordinatorRef>) -> Self {
+        self.coordinator = Some(coordinator);
+        self
     }
 }
 
@@ -79,4 +97,7 @@ pub enum ToolError {
 
     #[error("Invalid input: {0}")]
     InvalidInput(String),
+    
+    #[error("Not available: {0}")]
+    NotAvailable(String),
 }

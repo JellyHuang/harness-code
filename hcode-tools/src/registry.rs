@@ -1,6 +1,12 @@
 //! Tool registry.
 
 use crate::{Tool, ToolContext, ToolError};
+use crate::{BashTool, FileReadTool, FileWriteTool, FileEditTool, GlobTool, GrepTool};
+use crate::{AgentTool, TaskOutputTool, TaskStopTool, SendMessageTool};
+use crate::{WebFetchTool, WebSearchTool};
+use crate::{TodoWriteTool, AskUserQuestionTool};
+use crate::LspTool;
+use crate::SkillTool;
 use hcode_types::{ToolDefinition, ToolResult};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -17,6 +23,41 @@ impl ToolRegistry {
         Self {
             tools: HashMap::new(),
         }
+    }
+
+    /// Create registry with default tools.
+    pub fn with_default_tools() -> Self {
+        let mut registry = Self::new();
+        
+        // Core file tools
+        registry.register(Arc::new(BashTool));
+        registry.register(Arc::new(FileReadTool));
+        registry.register(Arc::new(FileWriteTool));
+        registry.register(Arc::new(FileEditTool));
+        registry.register(Arc::new(GlobTool));
+        registry.register(Arc::new(GrepTool));
+        
+        // Agent tools
+        registry.register(Arc::new(AgentTool));
+        registry.register(Arc::new(TaskOutputTool));
+        registry.register(Arc::new(TaskStopTool));
+        registry.register(Arc::new(SendMessageTool));
+        
+        // Network tools
+        registry.register(Arc::new(WebFetchTool));
+        registry.register(Arc::new(WebSearchTool));
+        
+        // Task & communication tools
+        registry.register(Arc::new(TodoWriteTool));
+        registry.register(Arc::new(AskUserQuestionTool));
+        
+        // Intelligence tools
+        registry.register(Arc::new(LspTool));
+        
+        // Extension tools
+        registry.register(Arc::new(SkillTool));
+        
+        registry
     }
 
     /// Register a tool.

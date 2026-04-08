@@ -54,6 +54,10 @@ uuid = { version = "1", features = ["v4", "serde"] }
 # Regex
 regex = "1"
 
+# Utilities
+parking_lot = "0.12"
+chrono = { version = "0.4", features = ["serde"] }
+
 # Directories
 dirs = "5"
 

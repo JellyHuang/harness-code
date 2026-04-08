@@ -6,6 +6,7 @@ use clap::Parser;
 mod cli;
 mod commands;
 mod interactive;
+mod slash_commands;
 
 #[derive(Parser)]
 #[command(name = "hcode")]

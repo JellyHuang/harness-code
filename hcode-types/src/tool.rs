@@ -36,6 +36,18 @@ impl ToolResult {
         }
     }
 
+    /// Create a successful result from JSON value.
+    /// Serializes the JSON to a string for transport to LLM.
+    pub fn success(value: serde_json::Value) -> Self {
+        Self {
+            content: serde_json::to_string(&value).unwrap_or_else(|e| {
+                format!("{{\"error\": \"Failed to serialize: {}\"}}", e)
+            }),
+            is_error: false,
+            images: Vec::new(),
+        }
+    }
+
     /// Create an error result.
     pub fn error(message: impl Into<String>) -> Self {
         Self {

@@ -17,3 +17,5 @@ thiserror.workspace = true
 eventsource-stream.workspace = true
 pin-project = "1"
 bytes = "1"
+uuid.workspace = true
+chrono.workspace = true
