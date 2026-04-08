@@ -55,7 +55,7 @@ impl ToolRegistry {
         registry.register(Arc::new(LspTool));
         
         // Extension tools
-        registry.register(Arc::new(SkillTool));
+        registry.register(Arc::new(SkillTool::default()));
         
         registry
     }
@@ -107,6 +107,11 @@ impl ToolRegistry {
     /// List all tool names.
     pub fn list(&self) -> Vec<&str> {
         self.tools.keys().map(|s| s.as_str()).collect()
+    }
+
+    /// Get all tools as Arc references.
+    pub fn tools(&self) -> Vec<Arc<dyn Tool>> {
+        self.tools.values().cloned().collect()
     }
 }
 

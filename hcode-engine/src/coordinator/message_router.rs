@@ -17,6 +17,7 @@ pub enum CoordinatorMessage {
 }
 
 /// Message router for sending messages to workers.
+#[derive(Debug)]
 pub struct MessageRouter {
     registry: Arc<WorkerRegistry>,
 }

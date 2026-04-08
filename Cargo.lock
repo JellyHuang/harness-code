@@ -476,6 +476,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "glob"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0cc23270f6e1808e30a928bdc84dea0b9b4136a8bc82338574f23baf47bbd280"
+
+[[package]]
 name = "h2"
 version = "0.4.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -514,6 +520,7 @@ name = "hcode"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "clap",
  "dirs",
  "futures",
@@ -526,6 +533,7 @@ dependencies = [
  "hcode-tools",
  "hcode-types",
  "serde_json",
+ "thiserror",
  "tokio",
  "uuid",
 ]
@@ -551,6 +559,7 @@ dependencies = [
  "async-stream",
  "async-trait",
  "chrono",
+ "dirs",
  "futures",
  "hcode-permission",
  "hcode-protocol",
@@ -562,6 +571,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
+ "serde_yaml",
  "thiserror",
  "tokio",
  "tokio-stream",
@@ -574,6 +584,7 @@ dependencies = [
 name = "hcode-mcp"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "hcode-tools",
  "hcode-types",
  "serde",
@@ -610,6 +621,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "bytes",
+ "chrono",
  "eventsource-stream",
  "futures",
  "hcode-config",
@@ -621,6 +633,7 @@ dependencies = [
  "serde_json",
  "thiserror",
  "tokio",
+ "uuid",
 ]
 
 [[package]]
@@ -642,12 +655,24 @@ name = "hcode-tools"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "chrono",
+ "dirs",
+ "glob",
  "hcode-permission",
  "hcode-types",
+ "parking_lot",
+ "regex",
+ "reqwest",
  "serde",
  "serde_json",
+ "serde_yaml",
+ "shellexpand",
+ "tempfile",
  "thiserror",
  "tokio",
+ "url",
+ "uuid",
+ "walkdir",
 ]
 
 [[package]]
@@ -1422,6 +1447,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9774ba4a74de5f7b1c1451ed6cd5285a32eddb5cccb8cc655a4e50009e06477f"
 
 [[package]]
+name = "same-file"
+version = "1.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "93fc1dc3aaa9bfed95e02e6eadabb4baf7e3078b0bd1b4d7b6b0b68378900502"
+dependencies = [
+ "winapi-util",
+]
+
+[[package]]
 name = "schannel"
 version = "0.1.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1531,6 +1565,15 @@ dependencies = [
  "ryu",
  "serde",
  "unsafe-libyaml",
+]
+
+[[package]]
+name = "shellexpand"
+version = "3.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32824fab5e16e6c4d86dc1ba84489390419a39f97699852b66480bb87d297ed8"
+dependencies = [
+ "dirs",
 ]
 
 [[package]]
@@ -1905,6 +1948,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
 
 [[package]]
+name = "walkdir"
+version = "2.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "29790946404f91d9c5d06f9874efddea1dc06c5efe94541a7d6863108e3a5e4b"
+dependencies = [
+ "same-file",
+ "winapi-util",
+]
+
+[[package]]
 name = "want"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2047,6 +2100,15 @@ checksum = "cd70027e39b12f0849461e08ffc50b9cd7688d942c1c8e3c7b22273236b4dd0a"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "winapi-util"
+version = "0.1.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
+dependencies = [
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

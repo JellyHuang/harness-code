@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::sync::LazyLock;
 
 /// Default result limit.
 pub const DEFAULT_LIMIT: usize = 100;
@@ -36,7 +37,7 @@ pub struct GrepInput {
 }
 
 /// A single grep match.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct GrepMatch {
     /// File path.
     pub file: String,
@@ -59,7 +60,7 @@ pub struct GrepOutput {
 }
 
 /// JSON schema for Grep tool input.
-pub static GREP_SCHEMA: Value = json!({
+pub static GREP_SCHEMA: LazyLock<Value> = LazyLock::new(|| json!({
     "type": "object",
     "properties": {
         "pattern": {
@@ -88,4 +89,4 @@ pub static GREP_SCHEMA: Value = json!({
         }
     },
     "required": ["pattern"]
-});
+}));

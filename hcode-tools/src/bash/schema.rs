@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::sync::LazyLock;
 
 /// Default timeout in milliseconds (2 minutes).
 pub const DEFAULT_TIMEOUT_MS: u64 = 120_000;
@@ -45,7 +46,7 @@ pub struct BashOutput {
 }
 
 /// JSON schema for Bash tool input.
-pub static BASH_SCHEMA: Value = json!({
+pub static BASH_SCHEMA: LazyLock<Value> = LazyLock::new(|| json!({
     "type": "object",
     "properties": {
         "command": {
@@ -68,4 +69,4 @@ pub static BASH_SCHEMA: Value = json!({
         }
     },
     "required": ["command"]
-});
+}));

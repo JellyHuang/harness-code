@@ -3,6 +3,7 @@
 use super::schema::SkillDefinition;
 use std::path::{Path, PathBuf};
 use std::fs;
+use dirs;
 
 /// Skill loader error.
 #[derive(Debug, thiserror::Error)]

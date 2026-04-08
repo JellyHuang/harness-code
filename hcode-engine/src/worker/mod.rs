@@ -10,7 +10,6 @@ pub use execution::*;
 
 use crate::coordinator::{WorkerHandle, WorkerMessage, WorkerRegistry, WorkerStatus};
 use hcode_tools::ToolRegistry;
-use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use uuid::Uuid;
@@ -72,6 +71,7 @@ pub struct Worker {
     comm: Option<WorkerCommunication>,
     
     /// Configuration.
+    #[allow(dead_code)]
     config: WorkerConfig,
 }
 

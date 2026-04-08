@@ -16,11 +16,12 @@ pub trait Provider: Send + Sync {
     /// Get the model name.
     fn model(&self) -> &str;
 
-    /// Stream completion.
+    /// Stream completion with optional system prompt.
     async fn stream(
         &self,
         messages: Vec<Message>,
         tools: Vec<ToolDefinition>,
+        system_prompt: Option<String>,
     ) -> Result<Pin<Box<dyn Stream<Item = StreamEvent> + Send>>, ProviderError>;
 
     /// Complete without streaming.
@@ -66,6 +67,12 @@ pub enum ProviderError {
 
     #[error("Authentication failed: {0}")]
     Auth(String),
+
+    #[error("Connection error: {0}")]
+    Connection(String),
+
+    #[error("Parse error: {0}")]
+    Parse(String),
 
     #[error("HTTP error: {0}")]
     Http(#[from] reqwest::Error),

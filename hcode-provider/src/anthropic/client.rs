@@ -97,10 +97,15 @@ impl AnthropicClient {
         &self,
         messages: Vec<Message>,
         tools: Vec<ToolDefinition>,
+        system_prompt: Option<String>,
         stream: bool,
     ) -> Result<MessagesRequest, ProviderError> {
-        // Separate system message if present
-        let system = None;
+        // Use provided system prompt or default
+        let system = system_prompt.or_else(|| {
+            // Default minimal system prompt
+            Some("You are a helpful AI assistant.".to_string())
+        });
+
         let anthropic_messages: Vec<AnthropicMessage> = messages
             .into_iter()
             .filter_map(|msg| {
@@ -146,7 +151,7 @@ impl AnthropicClient {
         messages: Vec<Message>,
         tools: Vec<ToolDefinition>,
     ) -> Result<CompletionResponse, ProviderError> {
-        let request = self.build_request(messages, tools, false)?;
+        let request = self.build_request(messages, tools, None, false)?;
         let headers = self.build_headers()?;
 
         let response = self
@@ -217,8 +222,9 @@ impl AnthropicClient {
         &self,
         messages: Vec<Message>,
         tools: Vec<ToolDefinition>,
+        system_prompt: Option<String>,
     ) -> Result<Pin<Box<dyn Stream<Item = StreamEvent> + Send>>, ProviderError> {
-        let request = self.build_request(messages, tools, true)?;
+        let request = self.build_request(messages, tools, system_prompt, true)?;
         let headers = self.build_headers()?;
 
         let response = self
@@ -259,8 +265,9 @@ impl Provider for AnthropicClient {
         &self,
         messages: Vec<Message>,
         tools: Vec<ToolDefinition>,
+        system_prompt: Option<String>,
     ) -> Result<Pin<Box<dyn Stream<Item = StreamEvent> + Send>>, ProviderError> {
-        self.stream_internal(messages, tools).await
+        self.stream_internal(messages, tools, system_prompt).await
     }
 
     async fn complete(

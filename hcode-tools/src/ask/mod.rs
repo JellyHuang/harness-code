@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use hcode_types::ToolResult;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::sync::LazyLock;
 
 use crate::{Tool, ToolContext, ToolError};
 
@@ -38,6 +39,28 @@ pub struct AskUserQuestionOutput {
 /// AskUserQuestion tool for interactive prompts.
 pub struct AskUserQuestionTool;
 
+/// JSON schema for AskUserQuestion tool.
+static ASK_USER_SCHEMA: LazyLock<Value> = LazyLock::new(|| json!({
+    "type": "object",
+    "properties": {
+        "question": {
+            "type": "string",
+            "description": "The question to ask"
+        },
+        "options": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Options for user to choose from"
+        },
+        "allow_custom": {
+            "type": "boolean",
+            "default": true,
+            "description": "Allow custom answer"
+        }
+    },
+    "required": ["question"]
+}));
+
 #[async_trait]
 impl Tool for AskUserQuestionTool {
     fn name(&self) -> &str {
@@ -49,26 +72,7 @@ impl Tool for AskUserQuestionTool {
     }
 
     fn input_schema(&self) -> &Value {
-        &json!({
-            "type": "object",
-            "properties": {
-                "question": {
-                    "type": "string",
-                    "description": "The question to ask"
-                },
-                "options": {
-                    "type": "array",
-                    "items": { "type": "string" },
-                    "description": "Options for user to choose from"
-                },
-                "allow_custom": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Allow custom answer"
-                }
-            },
-            "required": ["question"]
-        })
+        &ASK_USER_SCHEMA
     }
 
     fn is_read_only(&self) -> bool {

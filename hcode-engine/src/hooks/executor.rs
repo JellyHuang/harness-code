@@ -6,6 +6,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::process::Command;
 use tokio::time::timeout;
+use tokio::io::AsyncWriteExt;
 
 /// Hook executor.
 pub struct HookExecutor {
@@ -89,9 +90,12 @@ impl HookExecutor {
                 
                 // Write input to stdin
                 if let Some(mut stdin) = child.stdin.take() {
-                    use std::io::Write;
-                    write!(stdin, "{}", input)
+                    stdin.write_all(input.as_bytes())
+                        .await
                         .map_err(|e| format!("Failed to write to hook stdin: {}", e))?;
+                    stdin.flush()
+                        .await
+                        .map_err(|e| format!("Failed to flush hook stdin: {}", e))?;
                 }
                 
                 // Wait for completion

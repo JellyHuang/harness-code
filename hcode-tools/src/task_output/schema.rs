@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::sync::LazyLock;
 
 /// TaskOutput input parameters.
 #[derive(Debug, Deserialize)]
@@ -37,7 +38,7 @@ pub struct TaskOutputResult {
 }
 
 /// JSON schema for TaskOutput tool.
-pub static TASK_OUTPUT_SCHEMA: Value = json!({
+pub static TASK_OUTPUT_SCHEMA: LazyLock<Value> = LazyLock::new(|| json!({
     "type": "object",
     "properties": {
         "task_id": {
@@ -56,4 +57,4 @@ pub static TASK_OUTPUT_SCHEMA: Value = json!({
         }
     },
     "required": ["task_id"]
-});
+}));

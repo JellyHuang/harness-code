@@ -1,6 +1,8 @@
 //! MCP client implementation with stdio transport.
 
 use crate::protocol::*;
+use serde::Serialize;
+use serde_json::Value;
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, Command, Stdio};
@@ -115,9 +117,9 @@ impl McpClient {
         let mut server = cmd.spawn()
             .map_err(|e| McpError::ServerStart(format!("Failed to spawn: {}", e)))?;
         
-        let stdin = server.stdin.take()
+        let _stdin = server.stdin.take()
             .ok_or_else(|| McpError::ServerStart("No stdin".to_string()))?;
-        let stdout = server.stdout.take()
+        let _stdout = server.stdout.take()
             .ok_or_else(|| McpError::ServerStart("No stdout".to_string()))?;
         
         // Store process
@@ -137,8 +139,6 @@ impl McpClient {
                     version: self.config.client_version.clone(),
                 },
             },
-            stdin,
-            BufReader::new(stdout),
         ).await?;
         
         // Store capabilities
@@ -229,7 +229,7 @@ impl McpClient {
 
     /// Refresh tools list.
     fn refresh_tools(&self) -> Result<(), McpError> {
-        let result = self.send_request_blocking::<ListToolsResult>("tools/list", None)?;
+        let result = self.send_request_blocking::<ListToolsResult>("tools/list", None::<serde_json::Value>)?;
         let mut state = self.state.lock().unwrap();
         state.tools = result.tools;
         Ok(())
@@ -237,7 +237,7 @@ impl McpClient {
 
     /// Refresh resources list.
     fn refresh_resources(&self) -> Result<(), McpError> {
-        let result = self.send_request_blocking::<ListResourcesResult>("resources/list", None)?;
+        let result = self.send_request_blocking::<ListResourcesResult>("resources/list", None::<serde_json::Value>)?;
         let mut state = self.state.lock().unwrap();
         state.resources = result.resources;
         Ok(())
@@ -245,7 +245,7 @@ impl McpClient {
 
     /// Refresh prompts list.
     fn refresh_prompts(&self) -> Result<(), McpError> {
-        let result = self.send_request_blocking::<ListPromptsResult>("prompts/list", None)?;
+        let result = self.send_request_blocking::<ListPromptsResult>("prompts/list", None::<serde_json::Value>)?;
         let mut state = self.state.lock().unwrap();
         state.prompts = result.prompts;
         Ok(())
@@ -254,7 +254,7 @@ impl McpClient {
     /// Generate next request id.
     fn next_request_id(&self) -> RequestId {
         let id = self.state.lock().unwrap().request_id.fetch_add(1, Ordering::SeqCst);
-        RequestId::Number(id)
+        RequestId::Number(id as i64)
     }
 
     /// Send a JSON-RPC request and wait for response.
@@ -284,8 +284,7 @@ impl McpClient {
         let request_str = serde_json::to_string(&request)
             .map_err(|e| McpError::JsonParse(e.to_string()))?;
         
-        // Get stdin/stdout from process
-        let (stdin, stdout) = {
+        let response_line = {
             let mut state = self.state.lock().unwrap();
             let server = state.server.as_mut()
                 .ok_or(McpError::NotInitialized)?;
@@ -295,21 +294,22 @@ impl McpClient {
             let stdout = server.stdout.as_mut()
                 .ok_or_else(|| McpError::Communication("No stdout".to_string()))?;
             
-            (stdin, BufReader::new(stdout))
+            // Send request
+            stdin.write_all(request_str.as_bytes())
+                .map_err(|e| McpError::Communication(e.to_string()))?;
+            stdin.write_all(b"\n")
+                .map_err(|e| McpError::Communication(e.to_string()))?;
+            stdin.flush()
+                .map_err(|e| McpError::Communication(e.to_string()))?;
+            
+            // Read response
+            let mut stdout_reader = BufReader::new(stdout);
+            let mut response_line = String::new();
+            stdout_reader.read_line(&mut response_line)
+                .map_err(|e| McpError::Communication(e.to_string()))?;
+            
+            response_line
         };
-        
-        // Send request
-        stdin.write_all(request_str.as_bytes())
-            .map_err(|e| McpError::Communication(e.to_string()))?;
-        stdin.write_all(b"\n")
-            .map_err(|e| McpError::Communication(e.to_string()))?;
-        stdin.flush()
-            .map_err(|e| McpError::Communication(e.to_string()))?;
-        
-        // Read response
-        let mut response_line = String::new();
-        stdout.read_line(&mut response_line)
-            .map_err(|e| McpError::Communication(e.to_string()))?;
         
         // Parse response
         let response: Value = serde_json::from_str(&response_line)
@@ -396,7 +396,7 @@ impl McpToolAdapter {
         let result = self.client.call_tool(&self.tool.name, Some(input)).await?;
         
         // Convert content blocks to string
-        let content_str = result.content
+        let content_str: Vec<String> = result.content
             .iter()
             .map(|block| {
                 match block {
@@ -414,8 +414,8 @@ impl McpToolAdapter {
                     }
                 }
             })
-            .join("\n");
+            .collect();
         
-        Ok(content_str)
+        Ok(content_str.join("\n"))
     }
 }

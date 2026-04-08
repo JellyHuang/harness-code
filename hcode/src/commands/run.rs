@@ -9,6 +9,8 @@ use futures::StreamExt;
 use hcode_provider::ProviderRegistry;
 use hcode_session::JsonStorage;
 use hcode_types::Message;
+use std::io::{self, Write};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 /// Execute the run command.
@@ -102,10 +104,13 @@ async fn run_single_shot(
     // Create message from prompt
     let messages = vec![Message::user_text(prompt)];
 
+    // Build system prompt
+    let system_prompt = Some(hcode_engine::QueryEngineConfig::default_system_prompt());
+
     // Make streaming API call
     println!("Sending request...");
 
-    match provider.stream(messages, vec![]).await {
+    match provider.stream(messages, vec![], system_prompt).await {
         Ok(mut stream) => {
             while let Some(event) = stream.next().await {
                 match event {
@@ -154,9 +159,12 @@ async fn run_interactive(provider_name: String, model: String, ctx: &AppContext)
     // Create session storage
     let storage = Arc::new(JsonStorage::new()?);
 
+    // Determine working directory
+    let cwd = determine_working_directory()?;
+
     // Create interactive config
     let config = InteractiveConfig {
-        cwd: std::env::current_dir().unwrap_or_default(),
+        cwd,
         provider_name,
         model,
         show_thinking: false,
@@ -170,4 +178,101 @@ async fn run_interactive(provider_name: String, model: String, ctx: &AppContext)
     session.run().await?;
 
     Ok(())
+}
+
+/// Determine the working directory for the session.
+///
+/// Priority:
+/// 1. Current directory if it's a git repository root
+/// 2. Prompt user to enter a directory or use current
+fn determine_working_directory() -> Result<PathBuf> {
+    let current_dir = std::env::current_dir().unwrap_or_default();
+
+    // Check if current directory is a git repository
+    let is_git_repo = current_dir.join(".git").exists();
+
+    if is_git_repo {
+        return Ok(current_dir);
+    }
+
+    // Try to find parent git repository
+    if let Some(git_root) = find_git_root(&current_dir) {
+        println!();
+        println!("Found git repository at: {}", git_root.display());
+        println!("Current directory: {}", current_dir.display());
+        println!();
+        print!("Use this directory as working directory? [Y/n]: ");
+        io::stdout().flush()?;
+
+        let mut input = String::new();
+        io::stdin().read_line(&mut input)?;
+        let answer = input.trim().to_lowercase();
+
+        if answer == "n" || answer == "no" {
+            return prompt_for_directory();
+        }
+        return Ok(current_dir);
+    }
+
+    // No git repository found, prompt user
+    println!();
+    println!("No git repository detected in current directory.");
+    println!("Current directory: {}", current_dir.display());
+    println!();
+    print!("Enter working directory (or press Enter to use current): ");
+    io::stdout().flush()?;
+
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)?;
+    let path = input.trim();
+
+    if path.is_empty() {
+        return Ok(current_dir);
+    }
+
+    let dir = PathBuf::from(path);
+    if dir.exists() && dir.is_dir() {
+        Ok(dir)
+    } else {
+        println!("Directory does not exist, using current directory.");
+        Ok(current_dir)
+    }
+}
+
+/// Find the root of a git repository by walking up the directory tree.
+fn find_git_root(start: &PathBuf) -> Option<PathBuf> {
+    let mut current = start.clone();
+
+    while let Some(parent) = current.parent() {
+        if parent.join(".git").exists() {
+            return Some(parent.to_path_buf());
+        }
+        current = parent.to_path_buf();
+    }
+
+    None
+}
+
+/// Prompt user for a custom directory.
+fn prompt_for_directory() -> Result<PathBuf> {
+    println!();
+    print!("Enter working directory path: ");
+    io::stdout().flush()?;
+
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)?;
+    let path = input.trim();
+
+    if path.is_empty() {
+        return Ok(std::env::current_dir().unwrap_or_default());
+    }
+
+    let dir = PathBuf::from(path);
+    if dir.exists() && dir.is_dir() {
+        Ok(dir)
+    } else {
+        println!("Directory does not exist: {}", dir.display());
+        println!("Using current directory instead.");
+        Ok(std::env::current_dir().unwrap_or_default())
+    }
 }

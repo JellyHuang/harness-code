@@ -4,7 +4,6 @@ use super::built_in::get_builtin_agent;
 use super::schema::{AgentDefinition, AgentInput, AgentOutput, AgentStatus};
 use crate::{ToolContext, ToolError};
 use hcode_types::ToolResult;
-use std::sync::Arc;
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
@@ -67,7 +66,7 @@ pub async fn spawn_agent(
 
     // Determine run mode
     let run_in_background = input.run_in_background.unwrap_or(false);
-    let timeout_ms = input.timeout.unwrap_or(DEFAULT_TIMEOUT_MS);
+    let _timeout_ms = input.timeout.unwrap_or(DEFAULT_TIMEOUT_MS);
     let _max_turns = input.max_turns.unwrap_or(DEFAULT_MAX_TURNS);
 
     if run_in_background {

@@ -10,7 +10,9 @@ pub async fn search_files(input: GlobInput, context: ToolContext) -> Result<Tool
     // Validate limit
     let limit = input.limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT);
     
-    let base_path = Path::new(&input.path.unwrap_or_else(|| ".".to_string()));
+    // Create the path string first to avoid temporary value issues
+    let path_str = input.path.unwrap_or_else(|| ".".to_string());
+    let base_path = Path::new(&path_str);
     
     let full_base = if base_path.is_relative() {
         context.working_dir.join(base_path)
@@ -27,13 +29,14 @@ pub async fn search_files(input: GlobInput, context: ToolContext) -> Result<Tool
         full_base.join(&input.pattern)
     };
     
-    let pattern_str = pattern.to_str().unwrap();
+    // Convert pattern to string for use in spawn_blocking
+    let pattern_str = pattern.to_str().unwrap().to_string();
 
     // Execute glob search (blocking operation, run in spawn_blocking)
     let results: Vec<String> = tokio::task::spawn_blocking(move || {
         use glob::glob;
         
-        glob(pattern_str)
+        glob(&pattern_str)
             .unwrap_or_else(|e| panic!("Invalid glob pattern: {}", e))
             .filter_map(|entry| entry.ok())
             .take(limit)

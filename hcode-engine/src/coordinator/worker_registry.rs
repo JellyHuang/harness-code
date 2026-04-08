@@ -3,7 +3,6 @@
 use chrono::{DateTime, Utc};
 use parking_lot::RwLock;
 use std::collections::HashMap;
-use std::sync::Arc;
 use tokio::sync::mpsc;
 
 /// Worker status.
@@ -110,6 +109,7 @@ pub struct WorkerHandle {
 }
 
 /// Worker registry for managing all workers.
+#[derive(Debug)]
 pub struct WorkerRegistry {
     /// Map of worker ID to handle.
     workers: RwLock<HashMap<String, WorkerHandle>>,

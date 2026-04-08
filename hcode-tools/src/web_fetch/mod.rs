@@ -7,6 +7,7 @@ use async_trait::async_trait;
 use hcode_types::ToolResult;
 use reqwest::redirect;
 use serde_json::Value;
+use std::collections::HashMap;
 use std::time::Duration;
 pub use schema::*;
 

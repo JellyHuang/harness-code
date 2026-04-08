@@ -154,6 +154,7 @@ fn decode_html_entities(s: &str) -> String {
 /// URL encoding module.
 mod urlencoding {
     pub fn encode(s: &str) -> String {
-        url::percent_encoding::percent_encode(s.as_bytes(), url::percent_encoding::NON_ALPHANUMERIC).to_string()
+        // Use url crate's form_urlencoded for encoding
+        url::form_urlencoded::byte_serialize(s.as_bytes()).collect()
     }
 }

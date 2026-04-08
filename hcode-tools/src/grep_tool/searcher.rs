@@ -14,7 +14,9 @@ pub async fn search_content(input: GrepInput, context: ToolContext) -> Result<To
     
     let limit = input.limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT);
     
-    let base_path = Path::new(&input.path.unwrap_or_else(|| ".".to_string()));
+    // Create the path string first to avoid temporary value issues
+    let path_str = input.path.unwrap_or_else(|| ".".to_string());
+    let base_path = Path::new(&path_str);
     
     let full_base = if base_path.is_relative() {
         context.working_dir.join(base_path)

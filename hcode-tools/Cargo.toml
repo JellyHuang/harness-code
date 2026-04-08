@@ -35,6 +35,8 @@ url = "2"
 parking_lot.workspace = true
 chrono.workspace = true
 uuid.workspace = true
+dirs.workspace = true
+shellexpand = "3"
 
 # Testing
 tempfile.workspace = true

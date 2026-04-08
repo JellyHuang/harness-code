@@ -5,6 +5,7 @@ use hcode_types::ToolResult;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::sync::LazyLock;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -75,7 +76,8 @@ impl Default for TodoManager {
 }
 
 /// Global todo managers by session.
-static TODO_MANAGERS: RwLock<HashMap<String, Arc<TodoManager>>> = RwLock::new(HashMap::new());
+static TODO_MANAGERS: LazyLock<RwLock<HashMap<String, Arc<TodoManager>>>> = 
+    LazyLock::new(|| RwLock::new(HashMap::new()));
 
 /// Get or create todo manager for a session.
 pub fn get_todo_manager(session_id: &str) -> Arc<TodoManager> {
@@ -89,6 +91,32 @@ pub fn get_todo_manager(session_id: &str) -> Arc<TodoManager> {
 /// TodoWrite tool.
 pub struct TodoWriteTool;
 
+/// JSON schema for TodoWrite tool.
+static TODO_WRITE_SCHEMA: LazyLock<Value> = LazyLock::new(|| json!({
+    "type": "object",
+    "properties": {
+        "todos": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "content": { "type": "string" },
+                    "status": { 
+                        "type": "string",
+                        "enum": ["pending", "in_progress", "completed"]
+                    },
+                    "priority": {
+                        "type": "string",
+                        "enum": ["high", "medium", "low"]
+                    }
+                },
+                "required": ["content", "status"]
+            }
+        }
+    },
+    "required": ["todos"]
+}));
+
 #[async_trait]
 impl Tool for TodoWriteTool {
     fn name(&self) -> &str {
@@ -100,30 +128,7 @@ impl Tool for TodoWriteTool {
     }
 
     fn input_schema(&self) -> &Value {
-        &json!({
-            "type": "object",
-            "properties": {
-                "todos": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "content": { "type": "string" },
-                            "status": { 
-                                "type": "string",
-                                "enum": ["pending", "in_progress", "completed"]
-                            },
-                            "priority": {
-                                "type": "string",
-                                "enum": ["high", "medium", "low"]
-                            }
-                        },
-                        "required": ["content", "status"]
-                    }
-                }
-            },
-            "required": ["todos"]
-        })
+        &TODO_WRITE_SCHEMA
     }
 
     fn is_read_only(&self) -> bool {

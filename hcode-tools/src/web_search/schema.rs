@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::sync::LazyLock;
 
 /// WebSearch input parameters.
 #[derive(Debug, Deserialize)]
@@ -47,7 +48,7 @@ pub struct WebSearchOutput {
 }
 
 /// JSON schema for WebSearch tool.
-pub static WEB_SEARCH_SCHEMA: Value = json!({
+pub static WEB_SEARCH_SCHEMA: LazyLock<Value> = LazyLock::new(|| json!({
     "type": "object",
     "properties": {
         "query": {
@@ -66,4 +67,4 @@ pub static WEB_SEARCH_SCHEMA: Value = json!({
         }
     },
     "required": ["query"]
-});
+}));

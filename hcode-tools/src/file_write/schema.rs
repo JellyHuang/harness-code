@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::sync::LazyLock;
 
 /// Write tool input parameters.
 #[derive(Debug, Deserialize)]
@@ -24,7 +25,7 @@ pub struct WriteOutput {
 }
 
 /// JSON schema for Write tool input.
-pub static WRITE_SCHEMA: Value = json!({
+pub static WRITE_SCHEMA: LazyLock<Value> = LazyLock::new(|| json!({
     "type": "object",
     "properties": {
         "file_path": {
@@ -37,4 +38,4 @@ pub static WRITE_SCHEMA: Value = json!({
         }
     },
     "required": ["file_path", "content"]
-});
+}));

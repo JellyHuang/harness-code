@@ -1,12 +1,10 @@
 //! OpenAI client implementation.
 
 use super::types::*;
-use crate::{Provider, ProviderConfig, ProviderError};
+use crate::{Provider, ProviderError};
 use async_trait::async_trait;
-use hcode_types::{ContentBlock, Message, ToolUse, ToolResult};
+use hcode_types::{ContentBlock, Message};
 use reqwest::Client;
-use serde_json::json;
-use std::sync::Arc;
 
 /// OpenAI configuration.
 #[derive(Debug, Clone)]
@@ -106,7 +104,25 @@ impl OpenAIClient {
 
 #[async_trait]
 impl Provider for OpenAIClient {
-    async fn complete(&self, messages: Vec<Message>, tools: Vec<hcode_types::ToolDefinition>) -> Result<Message, ProviderError> {
+    fn name(&self) -> &str {
+        "openai"
+    }
+
+    fn model(&self) -> &str {
+        &self.config.model
+    }
+
+    async fn stream(
+        &self,
+        _messages: Vec<Message>,
+        _tools: Vec<hcode_types::ToolDefinition>,
+        _system_prompt: Option<String>,
+    ) -> Result<std::pin::Pin<Box<dyn futures::Stream<Item = hcode_protocol::StreamEvent> + Send>>, ProviderError> {
+        // TODO: Implement streaming
+        Err(ProviderError::Stream("Streaming not yet implemented".to_string()))
+    }
+
+    async fn complete(&self, messages: Vec<Message>, tools: Vec<hcode_types::ToolDefinition>) -> Result<crate::CompletionResponse, ProviderError> {
         let openai_messages = self.convert_messages(&messages);
         
         let openai_tools: Vec<ToolDefinition> = tools
@@ -150,42 +166,32 @@ impl Provider for OpenAIClient {
             .await
             .map_err(|e| ProviderError::Parse(e.to_string()))?;
         
-        // Convert response to Message
+        // Convert response to CompletionResponse
         let choice = completion.choices.first()
             .ok_or_else(|| ProviderError::Parse("No choices in response".to_string()))?;
         
-        let content: Vec<ContentBlock> = choice.message.content
+        let content = choice.message.content.clone().unwrap_or_default();
+        
+        // Extract tool calls if any
+        let tool_calls: Vec<crate::ToolCall> = choice.message.tool_calls
             .as_ref()
-            .map(|c| vec![ContentBlock::Text { text: c.clone() }])
+            .map(|tc| tc.iter().map(|t| crate::ToolCall {
+                id: t.id.clone(),
+                name: t.function.name.clone(),
+                input: serde_json::from_str(&t.function.arguments).unwrap_or(serde_json::Value::Null),
+            }).collect())
             .unwrap_or_default();
         
-        // Build assistant message
-        let assistant = hcode_types::AssistantMessage {
-            uuid: uuid::Uuid::new_v4().to_string(),
-            timestamp: chrono::Utc::now(),
-            message: hcode_types::AssistantMessageContent {
-                id: completion.id,
-                role: hcode_types::Role::Assistant,
-                model: completion.model,
-                content,
-                stop_reason: choice.finish_reason.clone(),
-                stop_sequence: None,
-                usage: completion.usage.map(|u| hcode_types::Usage {
-                    input_tokens: u.prompt_tokens,
-                    output_tokens: u.completion_tokens,
-                    cache_creation_input_tokens: 0,
-                    cache_read_input_tokens: 0,
-                }),
-            },
-            is_api_error_message: None,
-            api_error: None,
-            request_id: None,
+        let usage = crate::StreamUsage {
+            input_tokens: completion.usage.as_ref().map(|u| u.prompt_tokens as u32).unwrap_or(0),
+            output_tokens: completion.usage.as_ref().map(|u| u.completion_tokens as u32).unwrap_or(0),
         };
         
-        Ok(Message::Assistant(assistant))
-    }
-
-    fn name(&self) -> &str {
-        "openai"
+        Ok(crate::CompletionResponse {
+            content,
+            tool_calls,
+            usage,
+            stop_reason: choice.finish_reason.clone().unwrap_or_default(),
+        })
     }
 }

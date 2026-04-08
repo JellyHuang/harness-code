@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::sync::LazyLock;
 
 /// SendMessage input parameters.
 #[derive(Debug, Deserialize)]
@@ -28,7 +29,7 @@ pub struct SendMessageResult {
 }
 
 /// JSON schema for SendMessage tool.
-pub static SEND_MESSAGE_SCHEMA: Value = json!({
+pub static SEND_MESSAGE_SCHEMA: LazyLock<Value> = LazyLock::new(|| json!({
     "type": "object",
     "properties": {
         "message": {
@@ -41,4 +42,4 @@ pub static SEND_MESSAGE_SCHEMA: Value = json!({
         }
     },
     "required": ["message"]
-});
+}));

@@ -80,6 +80,39 @@ impl Default for QueryEngineConfig {
     }
 }
 
+impl QueryEngineConfig {
+    /// Get the default system prompt with environment information
+    pub fn default_system_prompt() -> String {
+        let os = if cfg!(windows) {
+            "Windows"
+        } else if cfg!(target_os = "macos") {
+            "macOS"
+        } else if cfg!(target_os = "linux") {
+            "Linux"
+        } else {
+            "Unix"
+        };
+
+        format!(
+            r#"You are an AI coding assistant. You are running on {}.
+
+IMPORTANT RULES:
+- When using the bash tool, use {}-compatible commands
+- On Windows: use PowerShell commands or native Windows tools
+- On Unix/macOS: use standard Unix commands
+- Always check if commands are available before using them
+- Be aware of path separators: {} on {}, / on Unix
+
+Current working directory: {}"#,
+            os,
+            if cfg!(windows) { "Windows/PowerShell" } else { "Unix" },
+            if cfg!(windows) { r"\" } else { "/" },
+            os,
+            std::env::current_dir().unwrap_or_default().display()
+        )
+    }
+}
+
 /// Query engine for running agents.
 ///
 /// Owns query lifecycle and session state for a conversation.
@@ -149,6 +182,7 @@ pub enum QueryOutput {
     /// Tool result
     ToolResult {
         tool_use_id: String,
+        tool_name: String,
         result: String,
         is_error: bool,
     },
@@ -219,6 +253,17 @@ impl QueryEngine {
             session_id,
             content_replacement_state: RwLock::new(ContentReplacementState::new()),
             current_model: RwLock::new(current_model),
+        }
+    }
+
+    /// Build system prompt from config
+    fn build_system_prompt(config: &QueryEngineConfig) -> String {
+        let base = QueryEngineConfig::default_system_prompt();
+        
+        if let Some(ref append) = config.append_system_prompt {
+            format!("{}\n\n{}", base, append)
+        } else {
+            base
         }
     }
 
@@ -370,10 +415,18 @@ impl QueryEngine {
                                 // Persist the updated state
                                 *self.content_replacement_state.write() = content_replacement_state;
 
+                                // Build system prompt
+                                let system_prompt = if let Some(ref custom) = self.config.custom_system_prompt {
+                                    Some(custom.clone())
+                                } else {
+                                    Some(Self::build_system_prompt(&self.config))
+                                };
+
                                 // Call provider stream
                                 let stream_result = provider.stream(
                                     messages_for_api,
                                     tool_definitions.clone(),
+                                    system_prompt,
                                 ).await;
 
                                 match stream_result {
@@ -402,7 +455,7 @@ impl QueryEngine {
                                                         tool_use: None,
                                                     });
                                                 }
-                                                StreamEvent::ContentBlockStart { index, block_type } => {
+                                                StreamEvent::ContentBlockStart { index, block_type, tool_id, tool_name } => {
                                                     match block_type {
                                                         hcode_protocol::ContentBlockType::Text => {
                                                             current_text = String::new();
@@ -412,8 +465,9 @@ impl QueryEngine {
                                                         }
                                                         hcode_protocol::ContentBlockType::ToolUse => {
                                                             current_tool_input_json = String::new();
-                                                            current_tool_id = String::new();
-                                                            current_tool_name = String::new();
+                                                            // Use tool_id and tool_name from the event if available
+                                                            current_tool_id = tool_id.unwrap_or_default();
+                                                            current_tool_name = tool_name.unwrap_or_default();
                                                         }
                                                     }
                                                     yield QueryOutput::StreamEvent(StreamEventOutput {
@@ -728,6 +782,7 @@ impl QueryEngine {
                                     for result in tool_results {
                                         yield QueryOutput::ToolResult {
                                             tool_use_id: result.tool_use_id.clone(),
+                                            tool_name: result.tool_name.clone(),
                                             result: match &result.result {
                                                 Ok(r) => r.content.clone(),
                                                 Err(e) => e.to_string(),

@@ -2,9 +2,8 @@
 
 use super::communication::WorkerCommunication;
 use super::state::WorkerStateMachine;
-use hcode_tools::{ToolContext, ToolRegistry};
+use hcode_tools::ToolRegistry;
 use std::sync::Arc;
-use std::time::Duration;
 
 /// Worker execution result.
 #[derive(Debug)]
@@ -95,7 +94,7 @@ impl WorkerExecutor {
 
     /// Run the worker (simplified - actual implementation would use QueryEngine).
     pub async fn run(
-        mut self,
+        self,
         mut state: WorkerStateMachine,
         comm: WorkerCommunication,
     ) -> WorkerResult {

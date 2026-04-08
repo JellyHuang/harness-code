@@ -97,6 +97,7 @@ pub struct WorkerInfo {
 }
 
 /// Main coordinator for managing workers.
+#[derive(Debug)]
 pub struct Coordinator {
     /// Worker registry.
     registry: Arc<WorkerRegistry>,

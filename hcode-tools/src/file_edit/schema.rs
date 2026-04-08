@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::sync::LazyLock;
 
 /// Edit tool input parameters.
 #[derive(Debug, Deserialize)]
@@ -31,7 +32,7 @@ pub struct EditOutput {
 }
 
 /// JSON schema for Edit tool input.
-pub static EDIT_SCHEMA: Value = json!({
+pub static EDIT_SCHEMA: LazyLock<Value> = LazyLock::new(|| json!({
     "type": "object",
     "properties": {
         "file_path": {
@@ -53,4 +54,4 @@ pub static EDIT_SCHEMA: Value = json!({
         }
     },
     "required": ["file_path", "old_string", "new_string"]
-});
+}));

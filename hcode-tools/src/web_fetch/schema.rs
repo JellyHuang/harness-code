@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::sync::LazyLock;
 use std::collections::HashMap;
 
 /// WebFetch input parameters.
@@ -55,7 +56,7 @@ pub struct WebFetchOutput {
 }
 
 /// JSON schema for WebFetch tool.
-pub static WEB_FETCH_SCHEMA: Value = json!({
+pub static WEB_FETCH_SCHEMA: LazyLock<Value> = LazyLock::new(|| json!({
     "type": "object",
     "properties": {
         "url": {
@@ -86,4 +87,4 @@ pub static WEB_FETCH_SCHEMA: Value = json!({
         }
     },
     "required": ["url"]
-});
+}));

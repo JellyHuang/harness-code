@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use hcode_types::ToolResult;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::path::PathBuf;
+use std::sync::LazyLock;
 
 use crate::{Tool, ToolContext, ToolError};
 
@@ -73,6 +73,37 @@ pub struct LspOutput {
 /// LSPTool for code intelligence.
 pub struct LspTool;
 
+/// JSON schema for LSP tool.
+static LSP_SCHEMA: LazyLock<Value> = LazyLock::new(|| json!({
+    "type": "object",
+    "properties": {
+        "action": {
+            "type": "string",
+            "enum": ["definition", "references", "hover", "completion", "rename", "symbols"],
+            "description": "LSP action to perform"
+        },
+        "file_path": {
+            "type": "string",
+            "description": "File path"
+        },
+        "line": {
+            "type": "number",
+            "description": "Line number (1-indexed)",
+            "minimum": 1
+        },
+        "column": {
+            "type": "number",
+            "description": "Column number (0-indexed)",
+            "minimum": 0
+        },
+        "new_name": {
+            "type": "string",
+            "description": "New name for rename action"
+        }
+    },
+    "required": ["action", "file_path", "line", "column"]
+}));
+
 #[async_trait]
 impl Tool for LspTool {
     fn name(&self) -> &str {
@@ -84,35 +115,7 @@ impl Tool for LspTool {
     }
 
     fn input_schema(&self) -> &Value {
-        &json!({
-            "type": "object",
-            "properties": {
-                "action": {
-                    "type": "string",
-                    "enum": ["definition", "references", "hover", "completion", "rename", "symbols"],
-                    "description": "LSP action to perform"
-                },
-                "file_path": {
-                    "type": "string",
-                    "description": "File path"
-                },
-                "line": {
-                    "type": "number",
-                    "description": "Line number (1-indexed)",
-                    "minimum": 1
-                },
-                "column": {
-                    "type": "number",
-                    "description": "Column number (0-indexed)",
-                    "minimum": 0
-                },
-                "new_name": {
-                    "type": "string",
-                    "description": "New name for rename action"
-                }
-            },
-            "required": ["action", "file_path", "line", "column"]
-        })
+        &LSP_SCHEMA
     }
 
     fn is_read_only(&self) -> bool {

@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::sync::LazyLock;
 
 /// Maximum file size to read (50MB).
 pub const MAX_FILE_SIZE: usize = 50_000_000;
@@ -44,7 +45,7 @@ pub struct ReadOutput {
 }
 
 /// JSON schema for Read tool input.
-pub static READ_SCHEMA: Value = json!({
+pub static READ_SCHEMA: LazyLock<Value> = LazyLock::new(|| json!({
     "type": "object",
     "properties": {
         "file_path": {
@@ -63,4 +64,4 @@ pub static READ_SCHEMA: Value = json!({
         }
     },
     "required": ["file_path"]
-});
+}));

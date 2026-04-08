@@ -7,6 +7,7 @@ use hcode_config::Config;
 use hcode_engine::{QueryEngine, QueryEngineConfig, QueryOutput, TerminalReason};
 use hcode_provider::ProviderRegistry;
 use hcode_session::{Session, Storage};
+use hcode_tools::{Tool, ToolRegistry};
 use hcode_types::Message;
 use std::io::{self, Write};
 use std::path::PathBuf;
@@ -21,6 +22,7 @@ pub enum SlashCommand {
     Clear,
     Help,
     Compact,
+    Cd(String),
 }
 
 /// Parse slash command from input.
@@ -30,12 +32,18 @@ pub fn parse_slash_command(input: &str) -> Option<SlashCommand> {
         return None;
     }
 
-    let cmd = trimmed.split_whitespace().next()?;
-    match cmd {
+    let parts: Vec<&str> = trimmed.split_whitespace().collect();
+    let cmd = parts.first()?;
+
+    match *cmd {
         "/exit" | "/quit" => Some(SlashCommand::Exit),
         "/clear" => Some(SlashCommand::Clear),
         "/help" => Some(SlashCommand::Help),
         "/compact" => Some(SlashCommand::Compact),
+        "/cd" => {
+            let path = parts.get(1).unwrap_or(&"").to_string();
+            Some(SlashCommand::Cd(path))
+        }
         _ => None,
     }
 }
@@ -158,6 +166,10 @@ impl InteractiveSession {
             "║  Provider: {:<15}  Model: {:<20}  ║",
             self.config.provider_name, self.config.model
         );
+        println!(
+            "║  Working Dir: {:<43}║",
+            truncate(self.config.cwd.to_str().unwrap_or("?"), 43)
+        );
         println!("║  Type /help for commands, /exit to quit                    ║");
         println!("╚════════════════════════════════════════════════════════════╝");
         println!();
@@ -273,7 +285,32 @@ impl InteractiveSession {
                 println!("[Auto-compaction is triggered when context exceeds threshold]");
                 println!("[Manual compaction will be available in a future update]");
             }
+            SlashCommand::Cd(path) => {
+                self.change_directory(&path)?;
+            }
         }
+        Ok(())
+    }
+
+    /// Change working directory.
+    fn change_directory(&mut self, path: &str) -> Result<()> {
+        let new_dir = if path.is_empty() || path == "~" {
+            dirs::home_dir().unwrap_or_default()
+        } else if path.starts_with('~') {
+            let home = dirs::home_dir().unwrap_or_default();
+            let rest = path.trim_start_matches('~');
+            home.join(rest.trim_start_matches('/'))
+        } else {
+            self.config.cwd.join(path)
+        };
+
+        if new_dir.exists() && new_dir.is_dir() {
+            self.config.cwd = new_dir.clone();
+            println!("[Working directory changed to: {}]", new_dir.display());
+        } else {
+            println!("[Error: Directory does not exist: {}]", new_dir.display());
+        }
+
         Ok(())
     }
 
@@ -285,6 +322,7 @@ impl InteractiveSession {
         println!("  /clear        - Clear conversation history");
         println!("  /help         - Show this help message");
         println!("  /compact      - Show conversation stats (auto-compaction enabled)");
+        println!("  /cd <path>    - Change working directory");
         println!();
         println!("Shortcuts:");
         println!("  Ctrl+C        - Save and exit");
@@ -312,8 +350,8 @@ impl InteractiveSession {
             ..Default::default()
         };
 
-        // Create tool registry (empty for MVP - will be populated later)
-        let tools = Arc::new(hcode_engine::SimpleToolRegistry::new(vec![]));
+        // Create tool registry with all default tools
+        let tools = Arc::new(ToolRegistryAdapter(Arc::new(ToolRegistry::with_default_tools())));
 
         let engine = QueryEngine::new(engine_config, tools, provider.clone());
 
@@ -328,14 +366,15 @@ impl InteractiveSession {
                     self.handle_stream_event(event)?;
                 }
                 QueryOutput::ToolResult {
-                    tool_use_id,
+                    tool_use_id: _,
+                    tool_name,
                     result,
                     is_error,
                 } => {
                     if is_error {
-                        eprintln!("[Tool error: {}] {}", tool_use_id, truncate(&result, 100));
+                        eprintln!("[Tool error: {}] {}", tool_name, truncate(&result, 200));
                     } else {
-                        println!("[Tool result: {}] {}", tool_use_id, truncate(&result, 100));
+                        println!("[Tool: {}] {}", tool_name, truncate(&result, 200));
                     }
                 }
                 QueryOutput::Progress { tool_use_id, data } => {
@@ -438,12 +477,14 @@ impl InteractiveSession {
     }
 }
 
-/// Truncate string to max length.
+/// Truncate string to max length (UTF-8 safe).
 fn truncate(s: &str, max_len: usize) -> String {
     if s.len() <= max_len {
         s.to_string()
     } else {
-        format!("{}...", &s[..max_len])
+        // Use chars() to handle UTF-8 correctly
+        let truncated: String = s.chars().take(max_len).collect();
+        format!("{}...", truncated)
     }
 }
 
@@ -507,5 +548,19 @@ mod tests {
     fn test_truncate() {
         assert_eq!(truncate("short", 100), "short");
         assert_eq!(truncate("very long string here", 10), "very long ...");
+    }
+}
+
+/// Adapter to wrap hcode_tools::ToolRegistry as hcode_engine::ToolRegistry
+struct ToolRegistryAdapter(Arc<ToolRegistry>);
+
+#[async_trait::async_trait]
+impl hcode_engine::ToolRegistry for ToolRegistryAdapter {
+    fn get(&self, name: &str) -> Option<Arc<dyn Tool>> {
+        self.0.get(name)
+    }
+
+    fn list(&self) -> Vec<Arc<dyn Tool>> {
+        self.0.tools()
     }
 }

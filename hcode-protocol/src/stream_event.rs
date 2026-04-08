@@ -9,6 +9,10 @@ pub enum StreamEvent {
     ContentBlockStart {
         index: usize,
         block_type: ContentBlockType,
+        /// Tool ID (only for ToolUse blocks)
+        tool_id: Option<String>,
+        /// Tool name (only for ToolUse blocks)
+        tool_name: Option<String>,
     },
     /// Content block delta.
     ContentBlockDelta { index: usize, delta: ContentDelta },

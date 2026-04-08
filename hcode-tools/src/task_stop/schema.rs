@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::sync::LazyLock;
 
 /// TaskStop input parameters.
 #[derive(Debug, Deserialize)]
@@ -24,7 +25,7 @@ pub struct TaskStopResult {
 }
 
 /// JSON schema for TaskStop tool.
-pub static TASK_STOP_SCHEMA: Value = json!({
+pub static TASK_STOP_SCHEMA: LazyLock<Value> = LazyLock::new(|| json!({
     "type": "object",
     "properties": {
         "task_id": {
@@ -33,4 +34,4 @@ pub static TASK_STOP_SCHEMA: Value = json!({
         }
     },
     "required": ["task_id"]
-});
+}));

@@ -15,7 +15,6 @@ pub use help::HelpCommand;
 pub use registry::{CommandRegistry, CommandContext, CommandResult, CommandError};
 
 use async_trait::async_trait;
-use std::sync::Arc;
 
 /// Command trait for slash commands.
 #[async_trait]

@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::sync::LazyLock;
 
 /// AgentTool input parameters.
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -109,7 +110,7 @@ pub struct AgentDefinition {
 }
 
 /// JSON schema for AgentTool input.
-pub static AGENT_SCHEMA: Value = json!({
+pub static AGENT_SCHEMA: LazyLock<Value> = LazyLock::new(|| json!({
     "type": "object",
     "properties": {
         "agent_name": {
@@ -156,4 +157,4 @@ pub static AGENT_SCHEMA: Value = json!({
         }
     },
     "required": ["agent_name", "prompt"]
-});
+}));

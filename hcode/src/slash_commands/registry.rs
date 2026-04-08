@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 /// Command execution context.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct CommandContext {
     /// Working directory.
     pub working_dir: std::path::PathBuf,
@@ -14,6 +15,7 @@ pub struct CommandContext {
     pub session_id: String,
 }
 
+#[allow(dead_code)]
 impl CommandContext {
     pub fn new(working_dir: std::path::PathBuf, session_id: String) -> Self {
         Self { working_dir, session_id }
@@ -22,6 +24,7 @@ impl CommandContext {
 
 /// Command result.
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct CommandResult {
     /// Output text.
     pub output: String,
@@ -34,6 +37,7 @@ pub struct CommandResult {
 }
 
 impl CommandResult {
+    #[allow(dead_code)]
     pub fn success(output: impl Into<String>) -> Self {
         Self {
             output: output.into(),
@@ -42,6 +46,7 @@ impl CommandResult {
         }
     }
     
+    #[allow(dead_code)]
     pub fn error(message: impl Into<String>) -> Self {
         Self {
             output: message.into(),
@@ -50,6 +55,7 @@ impl CommandResult {
         }
     }
     
+    #[allow(dead_code)]
     pub fn exit(output: impl Into<String>) -> Self {
         Self {
             output: output.into(),
@@ -61,6 +67,7 @@ impl CommandResult {
 
 /// Command error.
 #[derive(Debug, thiserror::Error)]
+#[allow(dead_code)]
 pub enum CommandError {
     #[error("Command failed: {0}")]
     Failed(String),
@@ -76,10 +83,12 @@ pub enum CommandError {
 }
 
 /// Registry for managing slash commands.
+#[allow(dead_code)]
 pub struct CommandRegistry {
     commands: HashMap<String, Arc<dyn Command>>,
 }
 
+#[allow(dead_code)]
 impl CommandRegistry {
     /// Create a new empty registry.
     pub fn new() -> Self {

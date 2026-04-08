@@ -82,12 +82,19 @@ impl AnthropicStream {
                 index,
                 content_block,
             } => {
-                let block_type = match content_block {
-                    AnthropicContentBlock::Text { .. } => ContentBlockType::Text,
-                    AnthropicContentBlock::Thinking { .. } => ContentBlockType::Thinking,
-                    AnthropicContentBlock::ToolUse { .. } => ContentBlockType::ToolUse,
+                let (block_type, tool_id, tool_name) = match content_block {
+                    AnthropicContentBlock::Text { .. } => (ContentBlockType::Text, None, None),
+                    AnthropicContentBlock::Thinking { .. } => (ContentBlockType::Thinking, None, None),
+                    AnthropicContentBlock::ToolUse { id, name, .. } => {
+                        (ContentBlockType::ToolUse, Some(id), Some(name))
+                    }
                 };
-                Some(StreamEvent::ContentBlockStart { index, block_type })
+                Some(StreamEvent::ContentBlockStart { 
+                    index, 
+                    block_type,
+                    tool_id,
+                    tool_name,
+                })
             }
             crate::anthropic::types::StreamEvent::ContentBlockDelta { index, delta } => {
                 let content_delta = match delta {

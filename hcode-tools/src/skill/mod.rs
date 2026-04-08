@@ -6,9 +6,9 @@ mod loader;
 use crate::{Tool, ToolContext, ToolError};
 use async_trait::async_trait;
 use hcode_types::ToolResult;
-use loader::SkillLoader;
 use parking_lot::RwLock;
 use serde_json::{json, Value};
+use std::sync::LazyLock;
 use std::sync::Arc;
 
 pub use schema::*;
@@ -111,7 +111,7 @@ impl Tool for SkillTool {
     }
 
     fn input_schema(&self) -> &Value {
-        &json!({
+        static SKILL_SCHEMA: LazyLock<Value> = LazyLock::new(|| json!({
             "type": "object",
             "properties": {
                 "skill_name": {
@@ -124,7 +124,8 @@ impl Tool for SkillTool {
                 }
             },
             "required": ["skill_name"]
-        })
+        }));
+        &SKILL_SCHEMA
     }
 
     fn is_read_only(&self) -> bool {

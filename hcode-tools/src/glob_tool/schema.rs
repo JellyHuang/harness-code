@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::sync::LazyLock;
 
 /// Default result limit.
 pub const DEFAULT_LIMIT: usize = 100;
@@ -35,7 +36,7 @@ pub struct GlobOutput {
 }
 
 /// JSON schema for Glob tool input.
-pub static GLOB_SCHEMA: Value = json!({
+pub static GLOB_SCHEMA: LazyLock<Value> = LazyLock::new(|| json!({
     "type": "object",
     "properties": {
         "pattern": {
@@ -55,4 +56,4 @@ pub static GLOB_SCHEMA: Value = json!({
         }
     },
     "required": ["pattern"]
-});
+}));
