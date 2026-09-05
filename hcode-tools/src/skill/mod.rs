@@ -1,18 +1,18 @@
 //! Skill system for user-defined capabilities.
 
-mod schema;
 mod loader;
+mod schema;
 
 use crate::{Tool, ToolContext, ToolError};
 use async_trait::async_trait;
 use hcode_types::ToolResult;
 use parking_lot::RwLock;
 use serde_json::{json, Value};
-use std::sync::LazyLock;
 use std::sync::Arc;
+use std::sync::LazyLock;
 
-pub use schema::*;
 pub use loader::*;
+pub use schema::*;
 
 /// Skill executor.
 pub struct SkillExecutor {
@@ -30,25 +30,26 @@ impl SkillExecutor {
     /// Execute a skill.
     pub async fn execute(&self, input: SkillInput) -> Result<SkillOutput, SkillError> {
         let loader = self.loader.read();
-        let skill = loader.get(&input.skill_name)
+        let skill = loader
+            .get(&input.skill_name)
             .ok_or_else(|| SkillError::NotFound(input.skill_name.clone()))?
             .clone();
         drop(loader);
-        
+
         let mut steps_completed = 0;
         let mut results = Vec::new();
-        
+
         for step in &skill.steps {
             // Interpolate parameters into prompt
             let prompt = self.interpolate_prompt(&step.prompt, &input.parameters);
-            
+
             // Execute step (placeholder - would integrate with QueryEngine)
             let result = format!("Step {} completed: {}", steps_completed + 1, prompt);
-            
+
             results.push(result);
             steps_completed += 1;
         }
-        
+
         Ok(SkillOutput {
             skill_name: input.skill_name,
             result: results.join("\n\n"),
@@ -60,7 +61,7 @@ impl SkillExecutor {
     /// Interpolate parameters into prompt.
     fn interpolate_prompt(&self, prompt: &str, params: &Option<Value>) -> String {
         let mut result = prompt.to_string();
-        
+
         if let Some(params) = params {
             if let Value::Object(map) = params {
                 for (key, value) in map {
@@ -71,7 +72,7 @@ impl SkillExecutor {
                 }
             }
         }
-        
+
         result
     }
 
@@ -96,7 +97,9 @@ impl Default for SkillTool {
 impl SkillTool {
     /// Create a new skill tool.
     pub fn new(executor: Arc<SkillExecutor>) -> Self {
-        Self { executor: Some(executor) }
+        Self {
+            executor: Some(executor),
+        }
     }
 }
 
@@ -111,20 +114,22 @@ impl Tool for SkillTool {
     }
 
     fn input_schema(&self) -> &Value {
-        static SKILL_SCHEMA: LazyLock<Value> = LazyLock::new(|| json!({
-            "type": "object",
-            "properties": {
-                "skill_name": {
-                    "type": "string",
-                    "description": "Name of the skill to execute"
+        static SKILL_SCHEMA: LazyLock<Value> = LazyLock::new(|| {
+            json!({
+                "type": "object",
+                "properties": {
+                    "skill_name": {
+                        "type": "string",
+                        "description": "Name of the skill to execute"
+                    },
+                    "parameters": {
+                        "type": "object",
+                        "description": "Parameters for the skill"
+                    }
                 },
-                "parameters": {
-                    "type": "object",
-                    "description": "Parameters for the skill"
-                }
-            },
-            "required": ["skill_name"]
-        }));
+                "required": ["skill_name"]
+            })
+        });
         &SKILL_SCHEMA
     }
 
@@ -137,12 +142,14 @@ impl Tool for SkillTool {
     }
 
     async fn call(&self, input: Value, _context: ToolContext) -> Result<ToolResult, ToolError> {
-        let params: SkillInput = serde_json::from_value(input)
-            .map_err(|e| ToolError::InvalidInput(e.to_string()))?;
-        
+        let params: SkillInput =
+            serde_json::from_value(input).map_err(|e| ToolError::InvalidInput(e.to_string()))?;
+
         // If no executor, return placeholder response
         let output = if let Some(executor) = &self.executor {
-            executor.execute(params).await
+            executor
+                .execute(params)
+                .await
                 .map_err(|e| ToolError::Execution(e.to_string()))?
         } else {
             SkillOutput {
@@ -152,9 +159,7 @@ impl Tool for SkillTool {
                 success: false,
             }
         };
-        
-        Ok(ToolResult::success(
-            serde_json::to_value(output).unwrap()
-        ))
+
+        Ok(ToolResult::success(serde_json::to_value(output).unwrap()))
     }
 }

@@ -5,8 +5,8 @@ mod schema;
 use crate::{Tool, ToolContext, ToolError};
 use async_trait::async_trait;
 use hcode_types::ToolResult;
-use serde_json::Value;
 pub use schema::*;
+use serde_json::Value;
 
 /// SendMessage tool for sending messages to coordinator/workers.
 pub struct SendMessageTool;
@@ -34,8 +34,8 @@ impl Tool for SendMessageTool {
     }
 
     async fn call(&self, input: Value, _context: ToolContext) -> Result<ToolResult, ToolError> {
-        let params: SendMessageInput = serde_json::from_value(input)
-            .map_err(|e| ToolError::InvalidInput(e.to_string()))?;
+        let params: SendMessageInput =
+            serde_json::from_value(input).map_err(|e| ToolError::InvalidInput(e.to_string()))?;
 
         // Note: Full coordinator integration requires QueryEngine setup
         Ok(ToolResult::success(
@@ -43,7 +43,8 @@ impl Tool for SendMessageTool {
                 sent: false,
                 message: params.message,
                 recipients: 0,
-            }).unwrap()
+            })
+            .unwrap(),
         ))
     }
 }

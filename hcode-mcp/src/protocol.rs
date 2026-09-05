@@ -200,9 +200,17 @@ pub struct ReadResourceResult {
 #[serde(tag = "type")]
 pub enum ResourceContents {
     #[serde(rename = "text")]
-    Text { uri: String, mime_type: Option<String>, text: String },
+    Text {
+        uri: String,
+        mime_type: Option<String>,
+        text: String,
+    },
     #[serde(rename = "blob")]
-    Blob { uri: String, mime_type: Option<String>, blob: String },
+    Blob {
+        uri: String,
+        mime_type: Option<String>,
+        blob: String,
+    },
 }
 
 // === Prompts ===

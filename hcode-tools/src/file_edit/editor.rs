@@ -9,7 +9,7 @@ use tokio::fs;
 /// Edit a file by replacing text.
 pub async fn edit_file(input: EditInput, context: ToolContext) -> Result<ToolResult, ToolError> {
     let path = Path::new(&input.file_path);
-    
+
     let full_path = if path.is_relative() {
         context.working_dir.join(path)
     } else {
@@ -17,7 +17,8 @@ pub async fn edit_file(input: EditInput, context: ToolContext) -> Result<ToolRes
     };
 
     // Read current content
-    let content = fs::read_to_string(&full_path).await
+    let content = fs::read_to_string(&full_path)
+        .await
         .map_err(|e| ToolError::Execution(format!("Failed to read file: {}", e)))?;
 
     // Check if old_string exists
@@ -47,13 +48,15 @@ pub async fn edit_file(input: EditInput, context: ToolContext) -> Result<ToolRes
     };
 
     // Write back
-    fs::write(&full_path, &new_content).await
+    fs::write(&full_path, &new_content)
+        .await
         .map_err(|e| ToolError::Execution(format!("Failed to write file: {}", e)))?;
 
     Ok(ToolResult::success(
         serde_json::to_value(EditOutput {
             file_path: input.file_path,
             replacements: count,
-        }).unwrap()
+        })
+        .unwrap(),
     ))
 }

@@ -16,22 +16,24 @@ pub struct TaskStopInput {
 pub struct TaskStopResult {
     /// Task ID.
     pub task_id: String,
-    
+
     /// Whether the task was stopped.
     pub stopped: bool,
-    
+
     /// Message.
     pub message: String,
 }
 
 /// JSON schema for TaskStop tool.
-pub static TASK_STOP_SCHEMA: LazyLock<Value> = LazyLock::new(|| json!({
-    "type": "object",
-    "properties": {
-        "task_id": {
-            "type": "string",
-            "description": "The task/worker ID to stop"
-        }
-    },
-    "required": ["task_id"]
-}));
+pub static TASK_STOP_SCHEMA: LazyLock<Value> = LazyLock::new(|| {
+    json!({
+        "type": "object",
+        "properties": {
+            "task_id": {
+                "type": "string",
+                "description": "The task/worker ID to stop"
+            }
+        },
+        "required": ["task_id"]
+    })
+});

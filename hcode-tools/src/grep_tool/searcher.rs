@@ -7,17 +7,20 @@ use regex::Regex;
 use std::path::Path;
 
 /// Search file contents for a pattern.
-pub async fn search_content(input: GrepInput, context: ToolContext) -> Result<ToolResult, ToolError> {
+pub async fn search_content(
+    input: GrepInput,
+    context: ToolContext,
+) -> Result<ToolResult, ToolError> {
     // Validate and compile regex
     let pattern = Regex::new(&input.pattern)
         .map_err(|e| ToolError::InvalidInput(format!("Invalid regex: {}", e)))?;
-    
+
     let limit = input.limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT);
-    
+
     // Create the path string first to avoid temporary value issues
     let path_str = input.path.unwrap_or_else(|| ".".to_string());
     let base_path = Path::new(&path_str);
-    
+
     let full_base = if base_path.is_relative() {
         context.working_dir.join(base_path)
     } else {
@@ -26,11 +29,11 @@ pub async fn search_content(input: GrepInput, context: ToolContext) -> Result<To
 
     // Run search in blocking thread
     let matches: Vec<GrepMatch> = tokio::task::spawn_blocking(move || {
-        use walkdir::WalkDir;
         use std::fs;
-        
+        use walkdir::WalkDir;
+
         let mut results: Vec<GrepMatch> = Vec::new();
-        
+
         for entry in WalkDir::new(&full_base)
             .into_iter()
             .filter_map(|e| e.ok())
@@ -41,7 +44,7 @@ pub async fn search_content(input: GrepInput, context: ToolContext) -> Result<To
             }
 
             let path = entry.path();
-            
+
             // Skip binary files (try to read as string)
             let content = fs::read_to_string(path);
             if content.is_err() {
@@ -55,21 +58,24 @@ pub async fn search_content(input: GrepInput, context: ToolContext) -> Result<To
                         line: line_num + 1,
                         content: line.to_string(),
                     });
-                    
+
                     if results.len() >= limit {
                         break;
                     }
                 }
             }
         }
-        
+
         results
-    }).await.unwrap();
+    })
+    .await
+    .unwrap();
 
     Ok(ToolResult::success(
         serde_json::to_value(GrepOutput {
             matches: matches.clone(),
             count: matches.len(),
-        }).unwrap()
+        })
+        .unwrap(),
     ))
 }

@@ -18,3 +18,9 @@ serde_json.workspace = true
 
 # Error handling
 thiserror.workspace = true
+
+# Concurrency
+parking_lot.workspace = true
+
+# Utils
+dirs.workspace = true

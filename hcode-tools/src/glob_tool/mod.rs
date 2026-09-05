@@ -6,8 +6,8 @@ mod searcher;
 use crate::{Tool, ToolContext, ToolError};
 use async_trait::async_trait;
 use hcode_types::ToolResult;
-use serde_json::Value;
 pub use schema::*;
+use serde_json::Value;
 
 /// Glob tool for pattern-based file search.
 pub struct GlobTool;
@@ -35,9 +35,9 @@ impl Tool for GlobTool {
     }
 
     async fn call(&self, input: Value, context: ToolContext) -> Result<ToolResult, ToolError> {
-        let params: GlobInput = serde_json::from_value(input)
-            .map_err(|e| ToolError::InvalidInput(e.to_string()))?;
-        
+        let params: GlobInput =
+            serde_json::from_value(input).map_err(|e| ToolError::InvalidInput(e.to_string()))?;
+
         searcher::search_files(params, context).await
     }
 }

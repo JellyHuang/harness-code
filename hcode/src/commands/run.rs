@@ -4,6 +4,7 @@
 
 use crate::commands::AppContext;
 use crate::interactive::{InteractiveConfig, InteractiveSession};
+use crate::slash_commands::CommandRegistry;
 use anyhow::Result;
 use futures::StreamExt;
 use hcode_provider::ProviderRegistry;
@@ -51,10 +52,15 @@ pub async fn execute(
     } else if let Some(m) = ctx.config.model.as_ref().and_then(|m| {
         let (p, model) = hcode_config::Config::parse_model_string(m);
         // only use it if it's a bare model name (no provider prefix)
-        if p.is_none() { Some(model.to_string()) } else { None }
+        if p.is_none() {
+            Some(model.to_string())
+        } else {
+            None
+        }
     }) {
         m
-    } else if let Some(m) = ctx.config
+    } else if let Some(m) = ctx
+        .config
         .provider
         .get(&provider_name)
         .and_then(|p| p.models.as_ref().and_then(|m| m.keys().next().cloned()))
@@ -163,14 +169,17 @@ async fn run_interactive(provider_name: String, model: String, ctx: &AppContext)
     let cwd = determine_working_directory()?;
 
     // Create interactive config
+    let command_registry = Arc::new(CommandRegistry::with_default_commands());
     let config = InteractiveConfig {
         cwd,
         provider_name,
         model,
         show_thinking: false,
         verbose: false,
+        stream_debug: false,
         storage: Some(storage),
         app_config: ctx.config.clone(),
+        command_registry,
     };
 
     // Create and run interactive session

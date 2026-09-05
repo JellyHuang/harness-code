@@ -87,7 +87,7 @@ pub async fn spawn_agent(
         // 2. Register with Coordinator
         // 3. Execute the agent
         // 4. Wait for completion or timeout
-        
+
         // Placeholder: simulate agent execution
         let result = format!(
             "Agent '{}' spawned with ID: {}\nDefinition: {:?}\nPrompt: {}",
@@ -108,9 +108,10 @@ pub async fn spawn_agent(
 
 /// Get effective tools for an agent (definition tools + input overrides).
 pub fn get_effective_tools(definition: &AgentDefinition, input: &AgentInput) -> Vec<String> {
-    let mut tools = input.tools.clone().unwrap_or_else(|| {
-        definition.tools.clone().unwrap_or_default()
-    });
+    let mut tools = input
+        .tools
+        .clone()
+        .unwrap_or_else(|| definition.tools.clone().unwrap_or_default());
 
     // Remove disallowed tools
     if let Some(disallowed) = &definition.disallowed_tools {

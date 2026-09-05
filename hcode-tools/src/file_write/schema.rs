@@ -9,7 +9,7 @@ use std::sync::LazyLock;
 pub struct WriteInput {
     /// Absolute path to write to.
     pub file_path: String,
-    
+
     /// Content to write.
     pub content: String,
 }
@@ -19,23 +19,25 @@ pub struct WriteInput {
 pub struct WriteOutput {
     /// File path that was written.
     pub file_path: String,
-    
+
     /// Number of bytes written.
     pub bytes_written: usize,
 }
 
 /// JSON schema for Write tool input.
-pub static WRITE_SCHEMA: LazyLock<Value> = LazyLock::new(|| json!({
-    "type": "object",
-    "properties": {
-        "file_path": {
-            "type": "string",
-            "description": "The absolute path to write to"
+pub static WRITE_SCHEMA: LazyLock<Value> = LazyLock::new(|| {
+    json!({
+        "type": "object",
+        "properties": {
+            "file_path": {
+                "type": "string",
+                "description": "The absolute path to write to"
+            },
+            "content": {
+                "type": "string",
+                "description": "The content to write"
+            }
         },
-        "content": {
-            "type": "string",
-            "description": "The content to write"
-        }
-    },
-    "required": ["file_path", "content"]
-}));
+        "required": ["file_path", "content"]
+    })
+});

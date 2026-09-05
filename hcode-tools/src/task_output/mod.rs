@@ -5,8 +5,8 @@ mod schema;
 use crate::{Tool, ToolContext, ToolError};
 use async_trait::async_trait;
 use hcode_types::ToolResult;
-use serde_json::Value;
 pub use schema::*;
+use serde_json::Value;
 
 /// TaskOutput tool for getting background task output.
 pub struct TaskOutputTool;
@@ -34,8 +34,8 @@ impl Tool for TaskOutputTool {
     }
 
     async fn call(&self, input: Value, _context: ToolContext) -> Result<ToolResult, ToolError> {
-        let params: TaskOutputInput = serde_json::from_value(input)
-            .map_err(|e| ToolError::InvalidInput(e.to_string()))?;
+        let params: TaskOutputInput =
+            serde_json::from_value(input).map_err(|e| ToolError::InvalidInput(e.to_string()))?;
 
         // Note: Full coordinator integration requires QueryEngine setup
         // This placeholder returns not_found until coordinator is wired up
@@ -45,7 +45,8 @@ impl Tool for TaskOutputTool {
                 status: "not_found".to_string(),
                 result: None,
                 error: Some("Task not found or coordinator not available".to_string()),
-            }).unwrap()
+            })
+            .unwrap(),
         ))
     }
 }

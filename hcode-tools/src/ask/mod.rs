@@ -13,24 +13,26 @@ use crate::{Tool, ToolContext, ToolError};
 pub struct AskUserQuestionInput {
     /// Question to ask.
     pub question: String,
-    
+
     /// Options for the user to choose from.
     #[serde(default)]
     pub options: Option<Vec<String>>,
-    
+
     /// Allow custom answer.
     #[serde(default = "default_allow_custom")]
     pub allow_custom: bool,
 }
 
-fn default_allow_custom() -> bool { true }
+fn default_allow_custom() -> bool {
+    true
+}
 
 /// AskUserQuestion output.
 #[derive(Debug, Serialize)]
 pub struct AskUserQuestionOutput {
     /// User's answer.
     pub answer: String,
-    
+
     /// Selected option index (if applicable).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub selected_option: Option<usize>,
@@ -40,26 +42,28 @@ pub struct AskUserQuestionOutput {
 pub struct AskUserQuestionTool;
 
 /// JSON schema for AskUserQuestion tool.
-static ASK_USER_SCHEMA: LazyLock<Value> = LazyLock::new(|| json!({
-    "type": "object",
-    "properties": {
-        "question": {
-            "type": "string",
-            "description": "The question to ask"
+static ASK_USER_SCHEMA: LazyLock<Value> = LazyLock::new(|| {
+    json!({
+        "type": "object",
+        "properties": {
+            "question": {
+                "type": "string",
+                "description": "The question to ask"
+            },
+            "options": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Options for user to choose from"
+            },
+            "allow_custom": {
+                "type": "boolean",
+                "default": true,
+                "description": "Allow custom answer"
+            }
         },
-        "options": {
-            "type": "array",
-            "items": { "type": "string" },
-            "description": "Options for user to choose from"
-        },
-        "allow_custom": {
-            "type": "boolean",
-            "default": true,
-            "description": "Allow custom answer"
-        }
-    },
-    "required": ["question"]
-}));
+        "required": ["question"]
+    })
+});
 
 #[async_trait]
 impl Tool for AskUserQuestionTool {
@@ -84,8 +88,8 @@ impl Tool for AskUserQuestionTool {
     }
 
     async fn call(&self, input: Value, _context: ToolContext) -> Result<ToolResult, ToolError> {
-        let params: AskUserQuestionInput = serde_json::from_value(input)
-            .map_err(|e| ToolError::InvalidInput(e.to_string()))?;
+        let params: AskUserQuestionInput =
+            serde_json::from_value(input).map_err(|e| ToolError::InvalidInput(e.to_string()))?;
 
         // Note: Full implementation requires UI integration
         // This placeholder returns a simulated response
@@ -103,7 +107,8 @@ impl Tool for AskUserQuestionTool {
             serde_json::to_value(AskUserQuestionOutput {
                 answer,
                 selected_option: None,
-            }).unwrap()
+            })
+            .unwrap(),
         ))
     }
 }

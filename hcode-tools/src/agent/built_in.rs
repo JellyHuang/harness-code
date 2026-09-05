@@ -97,7 +97,11 @@ pub fn get_builtin_agents() -> Vec<AgentDefinition> {
                 "grep".to_string(),
             ]),
             model: None,
-            disallowed_tools: Some(vec!["write".to_string(), "edit".to_string(), "bash".to_string()]),
+            disallowed_tools: Some(vec![
+                "write".to_string(),
+                "edit".to_string(),
+                "bash".to_string(),
+            ]),
         },
     ]
 }

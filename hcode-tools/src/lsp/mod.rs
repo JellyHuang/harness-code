@@ -25,16 +25,16 @@ pub enum LspAction {
 pub struct LspInput {
     /// Action to perform.
     pub action: LspAction,
-    
+
     /// File path.
     pub file_path: String,
-    
+
     /// Line number (1-indexed).
     pub line: usize,
-    
+
     /// Column number (0-indexed).
     pub column: usize,
-    
+
     /// New name for rename action.
     #[serde(default)]
     pub new_name: Option<String>,
@@ -45,13 +45,13 @@ pub struct LspInput {
 pub struct LspLocation {
     /// File path.
     pub file_path: String,
-    
+
     /// Line number.
     pub line: usize,
-    
+
     /// Column number.
     pub column: usize,
-    
+
     /// Optional text.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub text: Option<String>,
@@ -62,10 +62,10 @@ pub struct LspLocation {
 pub struct LspOutput {
     /// Action performed.
     pub action: String,
-    
+
     /// Results.
     pub results: Vec<LspLocation>,
-    
+
     /// Total count.
     pub total: usize,
 }
@@ -74,35 +74,37 @@ pub struct LspOutput {
 pub struct LspTool;
 
 /// JSON schema for LSP tool.
-static LSP_SCHEMA: LazyLock<Value> = LazyLock::new(|| json!({
-    "type": "object",
-    "properties": {
-        "action": {
-            "type": "string",
-            "enum": ["definition", "references", "hover", "completion", "rename", "symbols"],
-            "description": "LSP action to perform"
+static LSP_SCHEMA: LazyLock<Value> = LazyLock::new(|| {
+    json!({
+        "type": "object",
+        "properties": {
+            "action": {
+                "type": "string",
+                "enum": ["definition", "references", "hover", "completion", "rename", "symbols"],
+                "description": "LSP action to perform"
+            },
+            "file_path": {
+                "type": "string",
+                "description": "File path"
+            },
+            "line": {
+                "type": "number",
+                "description": "Line number (1-indexed)",
+                "minimum": 1
+            },
+            "column": {
+                "type": "number",
+                "description": "Column number (0-indexed)",
+                "minimum": 0
+            },
+            "new_name": {
+                "type": "string",
+                "description": "New name for rename action"
+            }
         },
-        "file_path": {
-            "type": "string",
-            "description": "File path"
-        },
-        "line": {
-            "type": "number",
-            "description": "Line number (1-indexed)",
-            "minimum": 1
-        },
-        "column": {
-            "type": "number",
-            "description": "Column number (0-indexed)",
-            "minimum": 0
-        },
-        "new_name": {
-            "type": "string",
-            "description": "New name for rename action"
-        }
-    },
-    "required": ["action", "file_path", "line", "column"]
-}));
+        "required": ["action", "file_path", "line", "column"]
+    })
+});
 
 #[async_trait]
 impl Tool for LspTool {
@@ -127,12 +129,12 @@ impl Tool for LspTool {
     }
 
     async fn call(&self, input: Value, _context: ToolContext) -> Result<ToolResult, ToolError> {
-        let params: LspInput = serde_json::from_value(input)
-            .map_err(|e| ToolError::InvalidInput(e.to_string()))?;
+        let params: LspInput =
+            serde_json::from_value(input).map_err(|e| ToolError::InvalidInput(e.to_string()))?;
 
         // Note: Full LSP integration requires language server setup
         // This placeholder returns simulated results
-        
+
         let results = match params.action {
             LspAction::Definition => {
                 vec![LspLocation {
@@ -143,16 +145,14 @@ impl Tool for LspTool {
                 }]
             }
             LspAction::References => {
-                vec![
-                    LspLocation {
-                        file_path: params.file_path.clone(),
-                        line: params.line,
-                        column: params.column,
-                        text: None,
-                    }
-                ]
+                vec![LspLocation {
+                    file_path: params.file_path.clone(),
+                    line: params.line,
+                    column: params.column,
+                    text: None,
+                }]
             }
-            _ => vec![]
+            _ => vec![],
         };
 
         let total = results.len();
@@ -166,10 +166,12 @@ impl Tool for LspTool {
                     LspAction::Completion => "completion",
                     LspAction::Rename => "rename",
                     LspAction::Symbols => "symbols",
-                }.to_string(),
+                }
+                .to_string(),
                 results,
                 total,
-            }).unwrap()
+            })
+            .unwrap(),
         ))
     }
 }

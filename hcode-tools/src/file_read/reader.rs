@@ -9,7 +9,7 @@ use tokio::fs;
 /// Read a file.
 pub async fn read_file(input: ReadInput, context: ToolContext) -> Result<ToolResult, ToolError> {
     let path = Path::new(&input.file_path);
-    
+
     // Resolve relative paths from working directory
     let full_path = if path.is_relative() {
         context.working_dir.join(path)
@@ -19,23 +19,28 @@ pub async fn read_file(input: ReadInput, context: ToolContext) -> Result<ToolRes
 
     // Check file exists
     if !full_path.exists() {
-        return Err(ToolError::Execution(
-            format!("File does not exist: {}", input.file_path)
-        ));
+        return Err(ToolError::Execution(format!(
+            "File does not exist: {}",
+            input.file_path
+        )));
     }
 
     // Check file size
-    let metadata = fs::metadata(&full_path).await
+    let metadata = fs::metadata(&full_path)
+        .await
         .map_err(|e| ToolError::Execution(format!("Failed to read file metadata: {}", e)))?;
-    
+
     if metadata.len() > MAX_FILE_SIZE as u64 {
-        return Err(ToolError::Execution(
-            format!("File too large: {} bytes (max {})", metadata.len(), MAX_FILE_SIZE)
-        ));
+        return Err(ToolError::Execution(format!(
+            "File too large: {} bytes (max {})",
+            metadata.len(),
+            MAX_FILE_SIZE
+        )));
     }
 
     // Read file content
-    let content = fs::read_to_string(&full_path).await
+    let content = fs::read_to_string(&full_path)
+        .await
         .map_err(|e| ToolError::Execution(format!("Failed to read file: {}", e)))?;
 
     // Split into lines
@@ -45,12 +50,12 @@ pub async fn read_file(input: ReadInput, context: ToolContext) -> Result<ToolRes
     // Apply offset and limit
     let offset = input.offset.unwrap_or(1);
     let offset_idx = (offset - 1).min(total_lines);
-    
+
     let limit = input.limit.unwrap_or(total_lines - offset_idx);
     let end_idx = (offset_idx + limit).min(total_lines);
-    
+
     let selected_lines = &all_lines[offset_idx..end_idx];
-    
+
     // Add line numbers
     let numbered_content = selected_lines
         .iter()
@@ -66,6 +71,7 @@ pub async fn read_file(input: ReadInput, context: ToolContext) -> Result<ToolRes
             num_lines: selected_lines.len(),
             start_line: offset,
             total_lines,
-        }).unwrap()
+        })
+        .unwrap(),
     ))
 }

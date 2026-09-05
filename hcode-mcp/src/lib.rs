@@ -35,7 +35,9 @@
 //! ```
 
 pub mod client;
+pub mod integration;
 pub mod protocol;
 
 pub use client::*;
+pub use integration::*;
 pub use protocol::*;

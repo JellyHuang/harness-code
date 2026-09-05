@@ -5,8 +5,8 @@ mod schema;
 use crate::{Tool, ToolContext, ToolError};
 use async_trait::async_trait;
 use hcode_types::ToolResult;
-use serde_json::Value;
 pub use schema::*;
+use serde_json::Value;
 
 /// WebSearch tool for searching the web.
 pub struct WebSearchTool;
@@ -34,26 +34,30 @@ impl Tool for WebSearchTool {
     }
 
     async fn call(&self, input: Value, _context: ToolContext) -> Result<ToolResult, ToolError> {
-        let params: WebSearchInput = serde_json::from_value(input)
-            .map_err(|e| ToolError::InvalidInput(e.to_string()))?;
+        let params: WebSearchInput =
+            serde_json::from_value(input).map_err(|e| ToolError::InvalidInput(e.to_string()))?;
 
         // Perform search based on engine
         let results = match params.engine.as_deref() {
             Some("google") | None => search_duckduckgo(&params.query, params.limit).await?,
             Some("duckduckgo") => search_duckduckgo(&params.query, params.limit).await?,
-            Some(other) => return Err(ToolError::InvalidInput(
-                format!("Unknown search engine: {}", other)
-            )),
+            Some(other) => {
+                return Err(ToolError::InvalidInput(format!(
+                    "Unknown search engine: {}",
+                    other
+                )))
+            }
         };
 
         let total = results.len();
-        
+
         Ok(ToolResult::success(
             serde_json::to_value(WebSearchOutput {
                 results,
                 query: params.query,
                 total,
-            }).unwrap()
+            })
+            .unwrap(),
         ))
     }
 }
@@ -61,41 +65,45 @@ impl Tool for WebSearchTool {
 /// Search using DuckDuckGo.
 async fn search_duckduckgo(query: &str, limit: usize) -> Result<Vec<SearchResult>, ToolError> {
     // Use DuckDuckGo HTML search (no API key required)
-    let url = format!("https://html.duckduckgo.com/html/?q={}", 
-        urlencoding::encode(query));
-    
+    let url = format!(
+        "https://html.duckduckgo.com/html/?q={}",
+        urlencoding::encode(query)
+    );
+
     let client = reqwest::Client::builder()
         .user_agent("Mozilla/5.0 (compatible; HCode/0.1.0)")
         .build()
         .map_err(|e| ToolError::Execution(e.to_string()))?;
-    
-    let response = client.get(&url)
+
+    let response = client
+        .get(&url)
         .send()
         .await
         .map_err(|e| ToolError::Execution(format!("Search failed: {}", e)))?;
-    
-    let html = response.text()
+
+    let html = response
+        .text()
         .await
         .map_err(|e| ToolError::Execution(format!("Failed to read response: {}", e)))?;
-    
+
     // Parse results from HTML (simplified parsing)
     let results = parse_ddg_results(&html, limit);
-    
+
     Ok(results)
 }
 
 /// Parse DuckDuckGo HTML results.
 fn parse_ddg_results(html: &str, limit: usize) -> Vec<SearchResult> {
     let mut results = Vec::new();
-    
+
     // Simple regex-like parsing for DDG HTML
     // Look for result class patterns
     let lines: Vec<&str> = html.lines().collect();
     let mut i = 0;
-    
+
     while i < lines.len() && results.len() < limit {
         let line = lines[i];
-        
+
         // Look for result URLs
         if line.contains("result__a") || line.contains("class=\"result__title\"") {
             // Extract URL
@@ -103,15 +111,15 @@ fn parse_ddg_results(html: &str, limit: usize) -> Vec<SearchResult> {
                 let url_start = url_start + 6;
                 if let Some(url_end) = line[url_start..].find('"') {
                     let url = &line[url_start..url_start + url_end];
-                    
+
                     // Extract title (next text content)
                     let mut title = String::new();
-                    for j in i..i+5.min(lines.len()) {
+                    for j in i..i + 5.min(lines.len()) {
                         let l = lines[j];
                         if l.contains("</a>") {
                             // Extract text between > and </a>
                             if let Some(gt) = l.rfind('>') {
-                                let after_gt = &l[gt+1..];
+                                let after_gt = &l[gt + 1..];
                                 if let Some(end) = after_gt.find('<') {
                                     title = after_gt[..end].to_string();
                                     break;
@@ -119,14 +127,14 @@ fn parse_ddg_results(html: &str, limit: usize) -> Vec<SearchResult> {
                             }
                         }
                     }
-                    
+
                     if title.is_empty() {
                         title = "No title".to_string();
                     }
-                    
+
                     // Decode HTML entities
                     let title = decode_html_entities(&title);
-                    
+
                     results.push(SearchResult {
                         title,
                         url: url.to_string(),
@@ -135,10 +143,10 @@ fn parse_ddg_results(html: &str, limit: usize) -> Vec<SearchResult> {
                 }
             }
         }
-        
+
         i += 1;
     }
-    
+
     results
 }
 

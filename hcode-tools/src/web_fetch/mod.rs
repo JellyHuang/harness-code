@@ -6,10 +6,10 @@ use crate::{Tool, ToolContext, ToolError};
 use async_trait::async_trait;
 use hcode_types::ToolResult;
 use reqwest::redirect;
+pub use schema::*;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::time::Duration;
-pub use schema::*;
 
 /// WebFetch tool for fetching web content.
 pub struct WebFetchTool;
@@ -37,8 +37,8 @@ impl Tool for WebFetchTool {
     }
 
     async fn call(&self, input: Value, _context: ToolContext) -> Result<ToolResult, ToolError> {
-        let params: WebFetchInput = serde_json::from_value(input)
-            .map_err(|e| ToolError::InvalidInput(e.to_string()))?;
+        let params: WebFetchInput =
+            serde_json::from_value(input).map_err(|e| ToolError::InvalidInput(e.to_string()))?;
 
         // Build client
         let client = reqwest::Client::builder()
@@ -55,45 +55,46 @@ impl Tool for WebFetchTool {
         // Build request
         let method = reqwest::Method::try_from(params.method.as_str())
             .map_err(|e| ToolError::InvalidInput(e.to_string()))?;
-        
+
         let mut request = client.request(method, &params.url);
-        
+
         // Add headers
         if let Some(headers) = &params.headers {
             for (k, v) in headers {
                 request = request.header(k, v);
             }
         }
-        
+
         // Add body
         if let Some(body) = &params.body {
             request = request.body(body.clone());
         }
-        
+
         // Execute request
-        let response = request.send()
+        let response = request
+            .send()
             .await
             .map_err(|e| ToolError::Execution(format!("Request failed: {}", e)))?;
-        
+
         let status = response.status().as_u16();
         let final_url = response.url().to_string();
-        
+
         // Extract headers
-        let headers: HashMap<String, String> = response.headers()
+        let headers: HashMap<String, String> = response
+            .headers()
             .iter()
-            .filter_map(|(k, v)| {
-                v.to_str().ok().map(|s| (k.to_string(), s.to_string()))
-            })
+            .filter_map(|(k, v)| v.to_str().ok().map(|s| (k.to_string(), s.to_string())))
             .collect();
-        
+
         // Get body
-        let body = response.text()
+        let body = response
+            .text()
             .await
             .map_err(|e| ToolError::Execution(format!("Failed to read response: {}", e)))?;
-        
+
         // Extract text content (strip HTML tags for basic extraction)
         let content = extract_text_content(&body);
-        
+
         Ok(ToolResult::success(
             serde_json::to_value(WebFetchOutput {
                 status,
@@ -101,7 +102,8 @@ impl Tool for WebFetchTool {
                 body: content,
                 final_url,
                 success: true,
-            }).unwrap()
+            })
+            .unwrap(),
         ))
     }
 }
@@ -111,7 +113,7 @@ fn extract_text_content(html: &str) -> String {
     // Simple HTML tag stripping
     let mut result = String::new();
     let mut in_tag = false;
-    
+
     for c in html.chars() {
         match c {
             '<' => in_tag = true,
@@ -120,7 +122,7 @@ fn extract_text_content(html: &str) -> String {
             _ => {}
         }
     }
-    
+
     // Collapse whitespace
     result.split_whitespace().collect::<Vec<_>>().join(" ")
 }

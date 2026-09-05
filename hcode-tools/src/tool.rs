@@ -57,7 +57,7 @@ pub struct ToolContext {
     pub working_dir: PathBuf,
     pub session_id: String,
     pub tool_use_id: String,
-    
+
     /// Optional coordinator reference for multi-agent tools.
     pub coordinator: Option<Arc<dyn CoordinatorRef>>,
 }
@@ -75,7 +75,7 @@ impl ToolContext {
             coordinator: None,
         }
     }
-    
+
     /// Set coordinator reference.
     pub fn with_coordinator(mut self, coordinator: Arc<dyn CoordinatorRef>) -> Self {
         self.coordinator = Some(coordinator);
@@ -97,7 +97,7 @@ pub enum ToolError {
 
     #[error("Invalid input: {0}")]
     InvalidInput(String),
-    
+
     #[error("Not available: {0}")]
     NotAvailable(String),
 }

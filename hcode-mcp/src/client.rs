@@ -15,22 +15,22 @@ use thiserror::Error;
 pub enum McpError {
     #[error("Failed to start MCP server: {0}")]
     ServerStart(String),
-    
+
     #[error("Failed to communicate with server: {0}")]
     Communication(String),
-    
+
     #[error("JSON parse error: {0}")]
     JsonParse(String),
-    
+
     #[error("Protocol error: {0}")]
     Protocol(String),
-    
+
     #[error("Tool not found: {0}")]
     ToolNotFound(String),
-    
+
     #[error("Tool execution error: {0}")]
     ToolExecution(String),
-    
+
     #[error("Server not initialized")]
     NotInitialized,
 }
@@ -105,56 +105,63 @@ impl McpClient {
         // Start server process
         let mut cmd = Command::new(&self.config.command);
         cmd.args(&self.config.args);
-        
+
         for (key, value) in &self.config.env {
             cmd.env(key, value);
         }
-        
+
         cmd.stdin(Stdio::piped());
         cmd.stdout(Stdio::piped());
         cmd.stderr(Stdio::piped());
-        
-        let mut server = cmd.spawn()
+
+        let mut server = cmd
+            .spawn()
             .map_err(|e| McpError::ServerStart(format!("Failed to spawn: {}", e)))?;
-        
-        let _stdin = server.stdin.take()
+
+        let _stdin = server
+            .stdin
+            .take()
             .ok_or_else(|| McpError::ServerStart("No stdin".to_string()))?;
-        let _stdout = server.stdout.take()
+        let _stdout = server
+            .stdout
+            .take()
             .ok_or_else(|| McpError::ServerStart("No stdout".to_string()))?;
-        
+
         // Store process
         {
             let mut state = self.state.lock().unwrap();
             state.server = Some(server);
         }
-        
+
         // Initialize handshake
-        let result = self.send_request::<InitializeResult>(
-            "initialize",
-            InitializeParams {
-                protocol_version: "2024-11-05".to_string(),
-                capabilities: ClientCapabilities::default(),
-                client_info: Implementation {
-                    name: self.config.client_name.clone(),
-                    version: self.config.client_version.clone(),
+        let result = self
+            .send_request::<InitializeResult>(
+                "initialize",
+                InitializeParams {
+                    protocol_version: "2024-11-05".to_string(),
+                    capabilities: ClientCapabilities::default(),
+                    client_info: Implementation {
+                        name: self.config.client_name.clone(),
+                        version: self.config.client_version.clone(),
+                    },
                 },
-            },
-        ).await?;
-        
+            )
+            .await?;
+
         // Store capabilities
         {
             let mut state = self.state.lock().unwrap();
             state.capabilities = Some(result.capabilities);
         }
-        
+
         // Send initialized notification
         self.send_notification("notifications/initialized", None)?;
-        
+
         // Fetch tools, resources, prompts
         self.refresh_tools()?;
         self.refresh_resources()?;
         self.refresh_prompts()?;
-        
+
         Ok(())
     }
 
@@ -162,7 +169,8 @@ impl McpClient {
     pub fn disconnect(&mut self) -> Result<(), McpError> {
         let mut state = self.state.lock().unwrap();
         if let Some(mut server) = state.server.take() {
-            server.kill()
+            server
+                .kill()
                 .map_err(|e| McpError::ServerStart(format!("Failed to kill server: {}", e)))?;
         }
         state.capabilities = None;
@@ -188,7 +196,11 @@ impl McpClient {
     }
 
     /// Call a tool.
-    pub async fn call_tool(&self, name: &str, arguments: Option<Value>) -> Result<CallToolResult, McpError> {
+    pub async fn call_tool(
+        &self,
+        name: &str,
+        arguments: Option<Value>,
+    ) -> Result<CallToolResult, McpError> {
         // Check tool exists
         {
             let state = self.state.lock().unwrap();
@@ -196,14 +208,15 @@ impl McpClient {
                 return Err(McpError::ToolNotFound(name.to_string()));
             }
         }
-        
+
         self.send_request::<CallToolResult>(
             "tools/call",
             CallToolParams {
                 name: name.to_string(),
                 arguments,
             },
-        ).await
+        )
+        .await
     }
 
     /// Read a resource.
@@ -213,23 +226,30 @@ impl McpClient {
             ReadResourceParams {
                 uri: uri.to_string(),
             },
-        ).await
+        )
+        .await
     }
 
     /// Get a prompt.
-    pub async fn get_prompt(&self, name: &str, arguments: Option<Value>) -> Result<GetPromptResult, McpError> {
+    pub async fn get_prompt(
+        &self,
+        name: &str,
+        arguments: Option<Value>,
+    ) -> Result<GetPromptResult, McpError> {
         self.send_request::<GetPromptResult>(
             "prompts/get",
             GetPromptParams {
                 name: name.to_string(),
                 arguments,
             },
-        ).await
+        )
+        .await
     }
 
     /// Refresh tools list.
     fn refresh_tools(&self) -> Result<(), McpError> {
-        let result = self.send_request_blocking::<ListToolsResult>("tools/list", None::<serde_json::Value>)?;
+        let result =
+            self.send_request_blocking::<ListToolsResult>("tools/list", None::<serde_json::Value>)?;
         let mut state = self.state.lock().unwrap();
         state.tools = result.tools;
         Ok(())
@@ -237,7 +257,10 @@ impl McpClient {
 
     /// Refresh resources list.
     fn refresh_resources(&self) -> Result<(), McpError> {
-        let result = self.send_request_blocking::<ListResourcesResult>("resources/list", None::<serde_json::Value>)?;
+        let result = self.send_request_blocking::<ListResourcesResult>(
+            "resources/list",
+            None::<serde_json::Value>,
+        )?;
         let mut state = self.state.lock().unwrap();
         state.resources = result.resources;
         Ok(())
@@ -245,7 +268,10 @@ impl McpClient {
 
     /// Refresh prompts list.
     fn refresh_prompts(&self) -> Result<(), McpError> {
-        let result = self.send_request_blocking::<ListPromptsResult>("prompts/list", None::<serde_json::Value>)?;
+        let result = self.send_request_blocking::<ListPromptsResult>(
+            "prompts/list",
+            None::<serde_json::Value>,
+        )?;
         let mut state = self.state.lock().unwrap();
         state.prompts = result.prompts;
         Ok(())
@@ -253,7 +279,12 @@ impl McpClient {
 
     /// Generate next request id.
     fn next_request_id(&self) -> RequestId {
-        let id = self.state.lock().unwrap().request_id.fetch_add(1, Ordering::SeqCst);
+        let id = self
+            .state
+            .lock()
+            .unwrap()
+            .request_id
+            .fetch_add(1, Ordering::SeqCst);
         RequestId::Number(id as i64)
     }
 
@@ -273,62 +304,70 @@ impl McpClient {
         params: Option<impl Serialize>,
     ) -> Result<T, McpError> {
         let id = self.next_request_id();
-        
+
         let request = JsonRpcRequest {
             jsonrpc: JSONRPC_VERSION.to_string(),
             id: id.clone(),
             method: method.to_string(),
             params: params.map(|p| serde_json::to_value(p).unwrap()),
         };
-        
-        let request_str = serde_json::to_string(&request)
-            .map_err(|e| McpError::JsonParse(e.to_string()))?;
-        
+
+        let request_str =
+            serde_json::to_string(&request).map_err(|e| McpError::JsonParse(e.to_string()))?;
+
         let response_line = {
             let mut state = self.state.lock().unwrap();
-            let server = state.server.as_mut()
-                .ok_or(McpError::NotInitialized)?;
-            
-            let stdin = server.stdin.as_mut()
+            let server = state.server.as_mut().ok_or(McpError::NotInitialized)?;
+
+            let stdin = server
+                .stdin
+                .as_mut()
                 .ok_or_else(|| McpError::Communication("No stdin".to_string()))?;
-            let stdout = server.stdout.as_mut()
+            let stdout = server
+                .stdout
+                .as_mut()
                 .ok_or_else(|| McpError::Communication("No stdout".to_string()))?;
-            
+
             // Send request
-            stdin.write_all(request_str.as_bytes())
+            stdin
+                .write_all(request_str.as_bytes())
                 .map_err(|e| McpError::Communication(e.to_string()))?;
-            stdin.write_all(b"\n")
+            stdin
+                .write_all(b"\n")
                 .map_err(|e| McpError::Communication(e.to_string()))?;
-            stdin.flush()
+            stdin
+                .flush()
                 .map_err(|e| McpError::Communication(e.to_string()))?;
-            
+
             // Read response
             let mut stdout_reader = BufReader::new(stdout);
             let mut response_line = String::new();
-            stdout_reader.read_line(&mut response_line)
+            stdout_reader
+                .read_line(&mut response_line)
                 .map_err(|e| McpError::Communication(e.to_string()))?;
-            
+
             response_line
         };
-        
+
         // Parse response
-        let response: Value = serde_json::from_str(&response_line)
-            .map_err(|e| McpError::JsonParse(e.to_string()))?;
-        
+        let response: Value =
+            serde_json::from_str(&response_line).map_err(|e| McpError::JsonParse(e.to_string()))?;
+
         // Check for error
         if let Some(error) = response.get("error") {
             let error_obj: JsonRpcError = serde_json::from_value(error.clone())
                 .map_err(|e| McpError::JsonParse(e.to_string()))?;
             return Err(McpError::Protocol(error_obj.message));
         }
-        
+
         // Extract result
-        let result = response.get("result")
+        let result = response
+            .get("result")
             .ok_or_else(|| McpError::Protocol("No result in response".to_string()))?;
-        
+
         let parsed: T = serde_json::from_value(result.clone())
             .map_err(|e| McpError::JsonParse(e.to_string()))?;
-        
+
         Ok(parsed)
     }
 
@@ -340,24 +379,28 @@ impl McpClient {
             method: method.to_string(),
             params,
         };
-        
-        let request_str = serde_json::to_string(&request)
-            .map_err(|e| McpError::JsonParse(e.to_string()))?;
-        
+
+        let request_str =
+            serde_json::to_string(&request).map_err(|e| McpError::JsonParse(e.to_string()))?;
+
         let mut state = self.state.lock().unwrap();
-        let server = state.server.as_mut()
-            .ok_or(McpError::NotInitialized)?;
-        
-        let stdin = server.stdin.as_mut()
+        let server = state.server.as_mut().ok_or(McpError::NotInitialized)?;
+
+        let stdin = server
+            .stdin
+            .as_mut()
             .ok_or_else(|| McpError::Communication("No stdin".to_string()))?;
-        
-        stdin.write_all(request_str.as_bytes())
+
+        stdin
+            .write_all(request_str.as_bytes())
             .map_err(|e| McpError::Communication(e.to_string()))?;
-        stdin.write_all(b"\n")
+        stdin
+            .write_all(b"\n")
             .map_err(|e| McpError::Communication(e.to_string()))?;
-        stdin.flush()
+        stdin
+            .flush()
             .map_err(|e| McpError::Communication(e.to_string()))?;
-        
+
         Ok(())
     }
 }
@@ -378,44 +421,41 @@ impl McpToolAdapter {
     pub fn new(client: Arc<McpClient>, tool: McpTool) -> Self {
         Self { client, tool }
     }
-    
+
     pub fn name(&self) -> &str {
         &self.tool.name
     }
-    
+
     pub fn description(&self) -> Option<&str> {
         self.tool.description.as_deref()
     }
-    
+
     pub fn input_schema(&self) -> &Value {
         &self.tool.input_schema
     }
-    
+
     /// Call the MCP tool.
     pub async fn call(&self, input: Value) -> Result<String, McpError> {
         let result = self.client.call_tool(&self.tool.name, Some(input)).await?;
-        
+
         // Convert content blocks to string
-        let content_str: Vec<String> = result.content
+        let content_str: Vec<String> = result
+            .content
             .iter()
-            .map(|block| {
-                match block {
-                    ContentBlock::Text { text } => text.clone(),
-                    ContentBlock::Image { data, mime_type } => {
-                        format!("[Image: {} ({} bytes)]", mime_type, data.len())
-                    }
-                    ContentBlock::Resource { resource } => {
-                        match &resource.contents {
-                            ResourceContents::Text { text, .. } => text.clone(),
-                            ResourceContents::Blob { blob, .. } => {
-                                format!("[Blob: {} bytes]", blob.len())
-                            }
-                        }
-                    }
+            .map(|block| match block {
+                ContentBlock::Text { text } => text.clone(),
+                ContentBlock::Image { data, mime_type } => {
+                    format!("[Image: {} ({} bytes)]", mime_type, data.len())
                 }
+                ContentBlock::Resource { resource } => match &resource.contents {
+                    ResourceContents::Text { text, .. } => text.clone(),
+                    ResourceContents::Blob { blob, .. } => {
+                        format!("[Blob: {} bytes]", blob.len())
+                    }
+                },
             })
             .collect();
-        
+
         Ok(content_str.join("\n"))
     }
 }

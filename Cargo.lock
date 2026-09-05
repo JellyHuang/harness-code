@@ -585,8 +585,10 @@ name = "hcode-mcp"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "dirs",
  "hcode-tools",
  "hcode-types",
+ "parking_lot",
  "serde",
  "serde_json",
  "thiserror",

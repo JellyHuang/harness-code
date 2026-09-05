@@ -15,11 +15,11 @@ pub const MAX_LIMIT: usize = 1000;
 pub struct GlobInput {
     /// Glob pattern to match files.
     pub pattern: String,
-    
+
     /// Base directory to search in.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub path: Option<String>,
-    
+
     /// Maximum number of results.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<usize>,
@@ -30,30 +30,32 @@ pub struct GlobInput {
 pub struct GlobOutput {
     /// List of matching file paths.
     pub files: Vec<String>,
-    
+
     /// Number of files found.
     pub count: usize,
 }
 
 /// JSON schema for Glob tool input.
-pub static GLOB_SCHEMA: LazyLock<Value> = LazyLock::new(|| json!({
-    "type": "object",
-    "properties": {
-        "pattern": {
-            "type": "string",
-            "description": "Glob pattern to match files (e.g., '**/*.js')"
+pub static GLOB_SCHEMA: LazyLock<Value> = LazyLock::new(|| {
+    json!({
+        "type": "object",
+        "properties": {
+            "pattern": {
+                "type": "string",
+                "description": "Glob pattern to match files (e.g., '**/*.js')"
+            },
+            "path": {
+                "type": "string",
+                "description": "Base directory to search in (defaults to current directory)"
+            },
+            "limit": {
+                "type": "number",
+                "description": "Maximum number of results",
+                "minimum": 1,
+                "maximum": MAX_LIMIT,
+                "default": DEFAULT_LIMIT
+            }
         },
-        "path": {
-            "type": "string",
-            "description": "Base directory to search in (defaults to current directory)"
-        },
-        "limit": {
-            "type": "number",
-            "description": "Maximum number of results",
-            "minimum": 1,
-            "maximum": MAX_LIMIT,
-            "default": DEFAULT_LIMIT
-        }
-    },
-    "required": ["pattern"]
-}));
+        "required": ["pattern"]
+    })
+});

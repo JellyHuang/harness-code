@@ -1,16 +1,16 @@
 //! Agent tool for spawning sub-agents.
 
+mod built_in;
 mod schema;
 mod spawner;
-mod built_in;
 
 use crate::{Tool, ToolContext, ToolError};
 use async_trait::async_trait;
-use hcode_types::ToolResult;
-use serde_json::Value;
-pub use schema::*;
-pub use spawner::*;
 pub use built_in::*;
+use hcode_types::ToolResult;
+pub use schema::*;
+use serde_json::Value;
+pub use spawner::*;
 
 /// Agent tool for spawning sub-agents.
 pub struct AgentTool;
@@ -38,12 +38,14 @@ impl Tool for AgentTool {
     }
 
     async fn call(&self, input: Value, context: ToolContext) -> Result<ToolResult, ToolError> {
-        let params: AgentInput = serde_json::from_value(input)
-            .map_err(|e| ToolError::InvalidInput(e.to_string()))?;
+        let params: AgentInput =
+            serde_json::from_value(input).map_err(|e| ToolError::InvalidInput(e.to_string()))?;
 
         // Validate agent name
         if params.agent_name.is_empty() {
-            return Err(ToolError::InvalidInput("agent_name is required".to_string()));
+            return Err(ToolError::InvalidInput(
+                "agent_name is required".to_string(),
+            ));
         }
 
         // Validate prompt

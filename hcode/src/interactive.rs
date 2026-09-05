@@ -15,6 +15,8 @@ use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::signal;
 
+use crate::slash_commands::{CommandContext, CommandError, CommandRegistry};
+
 /// Slash command types.
 #[derive(Debug, Clone, PartialEq)]
 pub enum SlashCommand {
@@ -65,11 +67,17 @@ pub struct InteractiveConfig {
     /// Verbose output
     pub verbose: bool,
 
+    /// Stream debug mode (show event types)
+    pub stream_debug: bool,
+
     /// Session storage
     pub storage: Option<Arc<dyn Storage>>,
 
     /// App config (for provider registry)
     pub app_config: Config,
+
+    /// Command registry for slash commands
+    pub command_registry: Arc<CommandRegistry>,
 }
 
 /// Interactive REPL session.
@@ -92,9 +100,14 @@ pub struct InteractiveSession {
 
 impl InteractiveSession {
     /// Create new interactive session.
-    pub fn new(config: InteractiveConfig) -> Self {
+    pub fn new(mut config: InteractiveConfig) -> Self {
         let session_id = uuid::Uuid::new_v4().to_string();
         let provider_registry = ProviderRegistry::from_config(&config.app_config);
+
+        // Initialize command registry with default commands if empty
+        if config.command_registry.list().is_empty() {
+            config.command_registry = Arc::new(CommandRegistry::with_default_commands());
+        }
 
         Self {
             session_id,
@@ -237,6 +250,38 @@ impl InteractiveSession {
         }
 
         // Handle slash commands
+        if trimmed.starts_with('/') {
+            // Try to execute via CommandRegistry first
+            let parts: Vec<&str> = trimmed.split_whitespace().collect();
+            let cmd_name = parts[0].trim_start_matches('/');
+            let args: Vec<String> = parts[1..].iter().map(|s| s.to_string()).collect();
+
+            let context = CommandContext::new(self.config.cwd.clone(), self.session_id.clone());
+
+            match self
+                .config
+                .command_registry
+                .execute(cmd_name, args, context)
+                .await
+            {
+                Ok(result) => {
+                    println!("{}", result.output);
+                    if result.should_exit {
+                        self.cancel();
+                    }
+                    return Ok(());
+                }
+                Err(e) => {
+                    // Fall through to old-style commands if not found in registry
+                    if !matches!(e, CommandError::NotFound(_)) {
+                        println!("[Command error: {}]", e);
+                        return Ok(());
+                    }
+                }
+            }
+        }
+
+        // Handle legacy built-in commands
         if let Some(cmd) = parse_slash_command(trimmed) {
             self.handle_slash_command(cmd).await?;
             return Ok(());
@@ -351,11 +396,18 @@ impl InteractiveSession {
         };
 
         // Create tool registry with all default tools
-        let tools = Arc::new(ToolRegistryAdapter(Arc::new(ToolRegistry::with_default_tools())));
+        let tools = Arc::new(ToolRegistryAdapter(Arc::new(
+            ToolRegistry::with_default_tools(),
+        )));
 
         let engine = QueryEngine::new(engine_config, tools, provider.clone());
 
         // Stream response
+        println!();
+        println!(
+            "[Provider: {}, Model: {}]",
+            self.config.provider_name, self.config.model
+        );
         println!();
         let stream = engine.submit_message(prompt);
         futures::pin_mut!(stream);
@@ -439,14 +491,18 @@ impl InteractiveSession {
 
     /// Handle stream event.
     fn handle_stream_event(&self, event: hcode_engine::StreamEventOutput) -> Result<()> {
+        // Debug mode: show event type
+        if self.config.stream_debug {
+            print!("\x1b[90m[{}]\x1b[0m ", event.event_type);
+            io::stdout().flush()?;
+        }
+
         match event.event_type.as_str() {
             "content_block_delta" => {
                 if let Some(text) = &event.content {
-                    // Skip "index=" prefix for actual content
-                    if !text.starts_with("index=") {
-                        print!("{}", text);
-                        io::stdout().flush()?;
-                    }
+                    // Always output text content immediately (no filtering)
+                    print!("{}", text);
+                    io::stdout().flush()?;
                 }
             }
             "thinking_delta" => {
@@ -502,6 +558,8 @@ mod tests {
             verbose: false,
             storage: None,
             app_config: Config::default(),
+            command_registry: Arc::new(CommandRegistry::new()),
+            stream_debug: false,
         };
         let session = InteractiveSession::new(config);
         assert!(!session.session_id().is_empty());
@@ -530,6 +588,8 @@ mod tests {
             verbose: false,
             storage: None,
             app_config: Config::default(),
+            command_registry: Arc::new(CommandRegistry::new()),
+            stream_debug: false,
         };
         let mut session = InteractiveSession::new(config);
         assert!(session.messages().is_empty());

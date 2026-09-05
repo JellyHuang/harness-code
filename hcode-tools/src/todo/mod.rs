@@ -5,9 +5,9 @@ use hcode_types::ToolResult;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::sync::LazyLock;
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::LazyLock;
 
 use crate::{Tool, ToolContext, ToolError};
 
@@ -16,10 +16,10 @@ use crate::{Tool, ToolContext, ToolError};
 pub struct TodoItem {
     /// Item content.
     pub content: String,
-    
+
     /// Item status.
     pub status: String,
-    
+
     /// Item priority.
     #[serde(default)]
     pub priority: Option<String>,
@@ -37,7 +37,7 @@ pub struct TodoWriteInput {
 pub struct TodoWriteOutput {
     /// Updated todos.
     pub todos: Vec<TodoItem>,
-    
+
     /// Number updated.
     pub updated: usize,
 }
@@ -76,7 +76,7 @@ impl Default for TodoManager {
 }
 
 /// Global todo managers by session.
-static TODO_MANAGERS: LazyLock<RwLock<HashMap<String, Arc<TodoManager>>>> = 
+static TODO_MANAGERS: LazyLock<RwLock<HashMap<String, Arc<TodoManager>>>> =
     LazyLock::new(|| RwLock::new(HashMap::new()));
 
 /// Get or create todo manager for a session.
@@ -92,30 +92,32 @@ pub fn get_todo_manager(session_id: &str) -> Arc<TodoManager> {
 pub struct TodoWriteTool;
 
 /// JSON schema for TodoWrite tool.
-static TODO_WRITE_SCHEMA: LazyLock<Value> = LazyLock::new(|| json!({
-    "type": "object",
-    "properties": {
-        "todos": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "content": { "type": "string" },
-                    "status": { 
-                        "type": "string",
-                        "enum": ["pending", "in_progress", "completed"]
+static TODO_WRITE_SCHEMA: LazyLock<Value> = LazyLock::new(|| {
+    json!({
+        "type": "object",
+        "properties": {
+            "todos": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "content": { "type": "string" },
+                        "status": {
+                            "type": "string",
+                            "enum": ["pending", "in_progress", "completed"]
+                        },
+                        "priority": {
+                            "type": "string",
+                            "enum": ["high", "medium", "low"]
+                        }
                     },
-                    "priority": {
-                        "type": "string",
-                        "enum": ["high", "medium", "low"]
-                    }
-                },
-                "required": ["content", "status"]
+                    "required": ["content", "status"]
+                }
             }
-        }
-    },
-    "required": ["todos"]
-}));
+        },
+        "required": ["todos"]
+    })
+});
 
 #[async_trait]
 impl Tool for TodoWriteTool {
@@ -140,8 +142,8 @@ impl Tool for TodoWriteTool {
     }
 
     async fn call(&self, input: Value, context: ToolContext) -> Result<ToolResult, ToolError> {
-        let params: TodoWriteInput = serde_json::from_value(input)
-            .map_err(|e| ToolError::InvalidInput(e.to_string()))?;
+        let params: TodoWriteInput =
+            serde_json::from_value(input).map_err(|e| ToolError::InvalidInput(e.to_string()))?;
 
         let manager = get_todo_manager(&context.session_id);
         let updated = manager.update(params.todos.clone());
@@ -150,7 +152,8 @@ impl Tool for TodoWriteTool {
             serde_json::to_value(TodoWriteOutput {
                 todos: params.todos,
                 updated,
-            }).unwrap()
+            })
+            .unwrap(),
         ))
     }
 }
